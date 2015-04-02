@@ -15,7 +15,7 @@ Pixiewps can be built and installed by running:
 # USAGE
 
 ```
- Usage: pixiewps \<arguments\>
+ Usage: pixiewps <arguments>
 
  Required Arguments:
 
