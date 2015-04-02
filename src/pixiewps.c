@@ -450,8 +450,8 @@ void display_usage() {
 	puts("");
 	puts("    -e, --pke      : Enrollee public key");
 	puts("    -r, --pkr      : Registrar public key");
-	puts("    -s, --e-hash1  : Enrollee public key");
-	puts("    -z, --e-hash2  : Registrar public key");
+	puts("    -s, --e-hash1  : E-Hash1");
+	puts("    -z, --e-hash2  : E-Hash2");
 	puts("    -a, --authkey  : Key used in HMAC SHA-256");
 	puts("");
 	puts(" Optional Arguments:");
