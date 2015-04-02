@@ -21,8 +21,8 @@ Pixiewps can be built and installed by running:
 
     -e, --pke      : Enrollee public key
     -r, --pkr      : Registrar public key
-    -s, --e-hash1  : Enrollee public key
-    -z, --e-hash2  : Registrar public key
+    -s, --e-hash1  : E-Hash1
+    -z, --e-hash2  : E-Hash2
     -a, --authkey  : Key used in HMAC SHA-256
 
  Optional Arguments:
