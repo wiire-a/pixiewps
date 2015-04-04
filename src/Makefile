@@ -6,7 +6,7 @@ PREFIX = $(DESTDIR)/usr/local
 BINDIR = $(PREFIX)/bin
 
 all:
-	$(CC) $(CCFLAGS) pixiewps.c -o $(TARGET)
+	$(CC) -o $(TARGET) pixiewps.c $(CCFLAGS)
 
 install:
 	install -D pixiewps $(BINDIR)/$(TARGET)
