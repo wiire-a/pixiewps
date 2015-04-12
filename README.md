@@ -1,4 +1,4 @@
-# OVERVIEW
+# OVERVIEW [![License](https://img.shields.io/badge/License-GPL%20v3%2B-blue.svg)] (https://github.com/wiire/pixiewps/blob/master/LICENSE.md)
 
 Pixiewps is a tool written in C used to bruteforce offline the WPS pin exploiting the low or non-existing entropy of some APs (pixie dust attack). It is meant for educational purposes only. All credits for the research go to Dominique Bongard.
 
