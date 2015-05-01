@@ -552,7 +552,7 @@ crack:
 		}
 		if (wps->verbosity > 2) {
 			if (wps->dhkey) { /* To see if AuthKey was supplied or not */
-				printf("\n [*] DHkey:      "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
+				printf("\n [*] DHKey:      "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
 				printf("\n [*] KDK:        "); byte_array_print(wps->kdk, WPS_HASH_LEN);
 				printf("\n [*] AuthKey:    "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
 				printf("\n [*] EMSK:       "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
