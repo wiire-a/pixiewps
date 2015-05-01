@@ -7,7 +7,7 @@ Pixiewps is a tool written in C used to bruteforce offline the WPS pin exploitin
 Pixiewps requires libssl. To install it:
 
 ```
-	sudo apt-get install libssl-dev
+    sudo apt-get install libssl-dev
 ```
 
 # INSTALLATION
@@ -15,9 +15,9 @@ Pixiewps requires libssl. To install it:
 Pixiewps can be built and installed by running:
 
 ```
-	~/pixiewps$ cd src
-	~/pixiewps/src$ make
-	~/pixiewps/src$ sudo make install
+    ~/pixiewps$ cd src
+    ~/pixiewps/src$ make
+    ~/pixiewps/src$ sudo make install
 ```
 
 # USAGE
@@ -27,16 +27,78 @@ Pixiewps can be built and installed by running:
 
  Required Arguments:
 
-    -e, --pke      : Enrollee public key
-    -r, --pkr      : Registrar public key
-    -s, --e-hash1  : E-Hash1
-    -z, --e-hash2  : E-Hash2
-    -a, --authkey  : Key used in HMAC SHA-256
+    -e, --pke           : Enrollee public key
+    -r, --pkr           : Registrar public key
+    -s, --e-hash1       : Enrollee Hash1
+    -z, --e-hash2       : Enrollee Hash2
+    -a, --authkey       : Authentication session key
 
  Optional Arguments:
 
-    -n, --e-nonce  : Enrollee nonce
-    -S, --dh-small : Small Diffie-Hellman keys (--pkr not needed)
+    -n, --e-nonce       : Enrollee nonce (mode 2,3,4)
+    -m, --r-nonce       : Registrar nonce
+    -b, --e-bssid       : Enrollee BSSID
+    -S, --dh-small      : Small Diffie-Hellman keys (PKr not needed)   [No]
+    -f, --force         : Bruteforce the whole keyspace (mode 4)       [No]
+    -v, --verbosity     : Verbosity level 1-3, 1 is quietest            [2]
 
-    -h, --help     : Display this usage screen
+    -h, --help          : Display this usage screen
+```
+
+# DESCRIPTION OF ARGUMENTS
+
+```
+    -e, --pke
+
+        Enrollee's DH public key, found in M1.
+
+    -r, --pkr
+
+        Registrar's DH public key, found in M2 or can be avoided by specifying
+        small Diffie-Hellman keys in both Reaver and Pixiewps.
+
+    -s, --e-hash1
+
+        Enrollee Hash-1, found in M3.
+
+    -z, --e-hash2
+
+        Enrollee Hash-2, found in M3.
+
+    -a, --authkey
+
+        Registration Protocol authentication session key. Although for this parameter a
+        modified version of Reaver or Bully is needed, it can be avoided by specifying
+        small Diffie-Hellman keys in both Reaver and Pixiewps and supplying --e-nonce,
+        --r-nonce and --e-bssid.
+
+    -n, --e-nonce
+
+        Enrollee's nonce, found in M1.
+
+    -m, --r-nonce
+
+        Registrar's nonce, found in M2.
+
+    -b, --e-bssid
+
+        Enrollee's BSSID.
+
+    -S, --dh-small
+
+        Small Diffie-Hellman keys. The same option MUST be specified on Reaver
+        (1.3 or later versions) too.
+
+    -f, --force
+
+        Force Pixiewps to bruteforce the whole keyspace for mode 4.
+        It could take up to several minutes to complete.
+
+    -v, --verbosity
+
+        Verbosity level (1-3). Level 3 displays the most information.
+
+    -h, --help
+
+        Display usage screen.
 ```
