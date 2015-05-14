@@ -1,5 +1,5 @@
 /*
- * pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
+ * Pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
  *           All credits for the research go to Dominique Bongard.
  *
  * Special thanks to: datahead, soxrok2212

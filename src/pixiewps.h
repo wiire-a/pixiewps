@@ -1,5 +1,5 @@
 /*
- * pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
+ * Pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
  *           All credits for the research go to Dominique Bongard.
  *
  * Special thanks to: datahead, soxrok2212
@@ -42,7 +42,7 @@
 
 #define VERSION           "1.1"
 #define MAX_MODE              4
-#define MODE4_DAYS           10
+#define MODE4_DAYS            3
 #define SEC_PER_HOUR       3600
 #define SEC_PER_DAY       86400
 
@@ -108,12 +108,12 @@ char usage[] =
 	"\n"
 	" Optional Arguments:\n"
 	"\n"
-	"    -n, --e-nonce       : Enrollee nonce (mode 2,3,4)\n"
+	"    -n, --e-nonce       : Enrollee nonce\n"
 	"    -m, --r-nonce       : Registrar nonce\n"
-        "    -b, --e-bssid       : Enrollee BSSID\n"
+	"    -b, --e-bssid       : Enrollee BSSID\n"
 	"    -S, --dh-small      : Small Diffie-Hellman keys (PKr not needed)   [No]\n"
-	"    -f, --force         : Bruteforce the whole keyspace (mode 4)       [No]\n"
-	"    -v, --verbosity     : Verbosity level 1-3, 1 is quietest            [2]\n"
+	"    -f, --force         : Bruteforce the whole keyspace                [No]\n"
+	"    -v, --verbosity     : Verbosity level 1-3, 1 is quietest            [3]\n"
 	"\n"
 	"    -h, --help          : Display this usage screen\n"
 	"\n"

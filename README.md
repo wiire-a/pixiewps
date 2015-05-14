@@ -35,15 +35,31 @@ Pixiewps can be built and installed by running:
 
  Optional Arguments:
 
-    -n, --e-nonce       : Enrollee nonce (mode 2,3,4)
+    -n, --e-nonce       : Enrollee nonce
     -m, --r-nonce       : Registrar nonce
     -b, --e-bssid       : Enrollee BSSID
     -S, --dh-small      : Small Diffie-Hellman keys (PKr not needed)   [No]
-    -f, --force         : Bruteforce the whole keyspace (mode 4)       [No]
-    -v, --verbosity     : Verbosity level 1-3, 1 is quietest            [2]
+    -f, --force         : Bruteforce the whole keyspace                [No]
+    -v, --verbosity     : Verbosity level 1-3, 1 is quietest            [3]
 
     -h, --help          : Display this usage screen
 ```
+
+# USAGE EXAMPLE
+
+A common usage example is:
+
+```
+    pixiewps --pke <pke> --pkr <pkr> --e-hash1 <e-hash1> --e-hash2 <e-hash2> --authkey <authkey> --e-nonce <e-nonce>
+```
+
+which requires a modified version of Reaver or Bully which prints *AuthKey*. The recommended version is [reaver-wps-fork-t6x](https://github.com/t6x/reaver-wps-fork-t6x).
+
+If the following message is shown:
+
+> [!] The AP /might be/ vulnerable. Try again with --force or with another (newer) set of data.
+
+then the AP might be vulnerable and Pixiewps should be run again with the same set of data along with the option `--force` or alternatively with a newer set of data.
 
 # DESCRIPTION OF ARGUMENTS
 
@@ -55,7 +71,7 @@ Pixiewps can be built and installed by running:
     -r, --pkr
 
         Registrar's DH public key, found in M2 or can be avoided by specifying
-        small Diffie-Hellman keys in both Reaver and Pixiewps.
+        --dh-small in both Reaver and Pixiewps.
 
     -s, --e-hash1
 
@@ -86,12 +102,12 @@ Pixiewps can be built and installed by running:
 
     -S, --dh-small
 
-        Small Diffie-Hellman keys. The same option MUST be specified on Reaver
-        (1.3 or later versions) too.
+        Small Diffie-Hellman keys. The same option MUST be specified in Reaver
+        (1.3 or later versions) too. This option should be avoided when possible.
 
     -f, --force
 
-        Force Pixiewps to bruteforce the whole keyspace for mode 4.
+        Force Pixiewps to bruteforce the whole keyspace (only for one type of PRNG).
         It could take up to several minutes to complete.
 
     -v, --verbosity

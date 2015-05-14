@@ -1,5 +1,4 @@
-CC = gcc
-CCFLAGS = -std=c99
+CCFLAGS = -std=c99 -O3
 LDFLAGS = -lssl -lcrypto
 
 TARGET = pixiewps

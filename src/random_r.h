@@ -1,5 +1,5 @@
 /*
- * pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
+ * Pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
  *           All credits for the research go to Dominique Bongard.
  *
  * Special thanks to: datahead, soxrok2212
@@ -53,8 +53,8 @@ struct random_data {
 };
 
 void random_r(struct random_data *buf, int32_t *result);
-int srandom_r (unsigned int seed, struct random_data *buf);
-int initstate_r (unsigned int seed, char *arg_state, size_t n, struct random_data *buf);
-int setstate_r (char *arg_state, struct random_data *buf);
+int srandom_r(unsigned int seed, struct random_data *buf);
+int initstate_r(unsigned int seed, char *arg_state, size_t n, struct random_data *buf);
+int setstate_r(char *arg_state, struct random_data *buf);
 
 #endif /* _RANDOM_R_H */
