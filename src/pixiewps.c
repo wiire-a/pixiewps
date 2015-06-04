@@ -46,7 +46,11 @@
 #include <getopt.h>
 
 #include <sys/time.h>
+#ifdef __MACH__
+#include <libkern/OSByteOrder.h>
+#else
 #include <asm/byteorder.h>
+#endif /* __MACH__ */
 
 #include "pixiewps.h"
 #include "random_r.h"
@@ -419,7 +423,11 @@ int main(int argc, char **argv) {
 						srandom_r(print_seed + 1, buf);
 						for (int i = 0; i < 4; i++) {
 							random_r(buf, &res);
+#ifdef __MACH__
+                            uint32_t be = OSSwapBigToHostInt32(res);
+#else
 							uint32_t be = __be32_to_cpu(res);
+#endif
 							memcpy(&(wps->e_s1[4 * i]), &be, 4);
 							memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
 						}
