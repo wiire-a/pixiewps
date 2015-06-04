@@ -1,5 +1,5 @@
 CCFLAGS = -std=c99 -O3
-LDFLAGS = -lcrypto
+LDFLAGS = -lcrypto -I../include
 
 TARGET = pixiewps
 PREFIX = $(DESTDIR)/usr
