@@ -37,8 +37,8 @@
  * files in the program, then also delete it here.
  */
 
-#ifndef _RANDOM_R_H
-#define _RANDOM_R_H
+#ifndef RANDOM_R_H
+#define RANDOM_R_H
 
 #include <stdint.h>
 
@@ -57,4 +57,4 @@ int srandom_r(unsigned int seed, struct random_data *buf);
 int initstate_r(unsigned int seed, char *arg_state, size_t n, struct random_data *buf);
 int setstate_r(char *arg_state, struct random_data *buf);
 
-#endif /* _RANDOM_R_H */
+#endif /* RANDOM_R_H */

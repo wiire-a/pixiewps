@@ -37,8 +37,8 @@
  * files in the program, then also delete it here.
  */
 
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef UTILS_H
+#define UTILS_H
 
 /* Converts an hex string to a byte array */
 int hex_string_to_byte_array(char *in, unsigned char *out, int n_len) {
@@ -106,4 +106,4 @@ void byte_array_print(unsigned char *buffer, unsigned int length) {
 	}
 }
 
-#endif /* _UTILS_H */
+#endif /* UTILS_H */

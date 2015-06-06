@@ -37,8 +37,8 @@
  * files in the program, then also delete it here.
  */
 
-#ifndef _PIXIEWPS_H
-#define _PIXIEWPS_H
+#ifndef PIXIEWPS_H
+#define PIXIEWPS_H
 
 #define VERSION           "1.1"
 #define MAX_MODE              4
@@ -155,18 +155,18 @@ void kdf(unsigned char *key, size_t key_len, unsigned char *res) {
 	unsigned char *buffer = malloc(WPS_KDF_SALT_LEN + 4 * 2);
 
 	for (i = 1; i < 4; i++) {
-#ifdef __MACH__
-        uint32_t be = OSSwapBigToHostInt32(i);
-#else
-        uint32_t be = __be32_to_cpu(i);
-#endif
+		#ifdef __MACH__
+			uint32_t be = OSSwapBigToHostInt32(i);
+		#else
+			uint32_t be = __be32_to_cpu(i);
+		#endif
 		memcpy(buffer, &be, 4);
 		memcpy(buffer + 4, salt, WPS_KDF_SALT_LEN);
-#ifdef __MACH__
-        be = OSSwapBigToHostInt32(kdk_len);
-#else
-        be = __be32_to_cpu(kdk_len);
-#endif
+		#ifdef __MACH__
+			be = OSSwapBigToHostInt32(kdk_len);
+		#else
+			be = __be32_to_cpu(kdk_len);
+		#endif
 		memcpy(buffer + 4 + 36, &be, 4);
 		hmac_sha256(key, WPS_HASH_LEN, buffer, WPS_KDF_SALT_LEN + 4 * 2, res + j);
 		j += WPS_HASH_LEN;
@@ -191,4 +191,4 @@ unsigned int wps_pin_valid(unsigned int pin) {
 	return wps_pin_checksum(pin / 10) == (pin % 10);
 }
 
-#endif /* _PIXIEWPS_H */
+#endif /* PIXIEWPS_H */
