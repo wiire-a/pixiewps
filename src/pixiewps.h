@@ -125,7 +125,7 @@ char usage[] =
 	"%s";
 
 /* SHA-256 */
-void sha256(const unsigned char *data, size_t data_len, unsigned char *digest) {
+void sha256(const unsigned char *data, const size_t data_len, unsigned char *digest) {
 	SHA256_CTX ctx;
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, data, data_len);
@@ -133,7 +133,7 @@ void sha256(const unsigned char *data, size_t data_len, unsigned char *digest) {
 }
 
 /* HMAC-SHA-256 */
-void hmac_sha256(const void *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest) {
+void hmac_sha256(const void *key, int key_len, const unsigned char *data, const size_t data_len, unsigned char *digest) {
 	unsigned int h_len = WPS_HASH_LEN;
 	HMAC_CTX ctx;
 	HMAC_CTX_init(&ctx);
@@ -144,10 +144,10 @@ void hmac_sha256(const void *key, int key_len, const unsigned char *data, size_t
 }
 
 /* Key Derivation Function */
-void kdf(unsigned char *key, size_t key_len, unsigned char *res) {
+void kdf(const void *key, const size_t key_len, unsigned char *res) {
 	uint32_t i = 1;
 	uint32_t kdk_len = key_len * 8;
-	int j = 0;
+	uint_fast8_t j = 0;
 
 	/* Wi-Fi Easy and Secure Key Derivation */
 	char *salt = "\x57\x69\x2d\x46\x69\x20\x45\x61\x73\x79\x20\x61\x6e\x64\x20\x53\x65\x63\x75\x72\x65\x20\x4b\x65\x79\x20\x44\x65\x72\x69\x76\x61\x74\x69\x6f\x6e";
@@ -155,18 +155,10 @@ void kdf(unsigned char *key, size_t key_len, unsigned char *res) {
 	unsigned char *buffer = malloc(WPS_KDF_SALT_LEN + 4 * 2);
 
 	for (i = 1; i < 4; i++) {
-		#ifdef __MACH__
-			uint32_t be = OSSwapBigToHostInt32(i);
-		#else
-			uint32_t be = __be32_to_cpu(i);
-		#endif
+		uint32_t be = be32(i);
 		memcpy(buffer, &be, 4);
 		memcpy(buffer + 4, salt, WPS_KDF_SALT_LEN);
-		#ifdef __MACH__
-			be = OSSwapBigToHostInt32(kdk_len);
-		#else
-			be = __be32_to_cpu(kdk_len);
-		#endif
+		be = be32(kdk_len);
 		memcpy(buffer + 4 + 36, &be, 4);
 		hmac_sha256(key, WPS_HASH_LEN, buffer, WPS_KDF_SALT_LEN + 4 * 2, res + j);
 		j += WPS_HASH_LEN;
@@ -175,7 +167,7 @@ void kdf(unsigned char *key, size_t key_len, unsigned char *res) {
 }
 
 /* Pin checksum computing */
-unsigned int wps_pin_checksum(unsigned int pin) {
+inline unsigned int wps_pin_checksum(unsigned int pin) {
 	unsigned int acc = 0;
 	while (pin) {
 		acc += 3 * (pin % 10);
@@ -187,7 +179,7 @@ unsigned int wps_pin_checksum(unsigned int pin) {
 }
 
 /* Validity PIN control based on checksum */
-unsigned int wps_pin_valid(unsigned int pin) {
+inline unsigned int wps_pin_valid(unsigned int pin) {
 	return wps_pin_checksum(pin / 10) == (pin % 10);
 }
 

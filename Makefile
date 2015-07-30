@@ -1,9 +1,8 @@
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=pixiewps
-PKG_RELEASE:=1.1
+include version.mk
 
-PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -11,13 +10,13 @@ define Package/pixiewps
 	SECTION:=net
 	CATEGORY:=Network
 	SUBMENU:=wireless
-	TITLE:=An offline WPS Bruteforce utility
+	TITLE:=An offline WPS bruteforce utility
 	DEPENDS:=+libopenssl
 	URL:=https://github.com/wiire/pixiewps
 endef
 
 define Package/pixiewps/description
-	An offline WPS Bruteforce utility
+	An offline WPS bruteforce utility
 endef
 
 define Build/Prepare

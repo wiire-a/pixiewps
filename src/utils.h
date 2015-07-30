@@ -41,16 +41,16 @@
 #define UTILS_H
 
 /* Converts an hex string to a byte array */
-int hex_string_to_byte_array(char *in, unsigned char *out, int n_len) {
-	int i, j, o;
-	int len = strlen(in);
-	int b_len = n_len * 2 + n_len - 1;
+unsigned int hex_string_to_byte_array(char *in, unsigned char *out, const unsigned int n_len) {
+	uint_fast8_t o;
+	unsigned int len = strlen(in);
+	unsigned int b_len = n_len * 2 + n_len - 1;
 
 	if (len != n_len * 2 && len != b_len)
 		return 1;
-	for (i = 0; i < n_len; i++) {
+	for (unsigned int i = 0; i < n_len; i++) {
 		o = 0;
-		for (j = 0; j < 2; j++) {
+		for (uint_fast8_t j = 0; j < 2; j++) {
 			o <<= 4;
 			if (*in >= 'A' && *in <= 'F')
 				*in += 'a'-'A';
@@ -89,7 +89,7 @@ int get_int(char *in, int *out) {
 };
 
 /* Converts an unsigned integer to a char array without termination */
-void uint_to_char_array(unsigned int num, int len, unsigned char *dst) {
+void uint_to_char_array(unsigned int num, unsigned int len, unsigned char *dst) {
 	unsigned int mul = 1;
 	while (len--) {
 		dst[len] = (num % (mul * 10) / mul) + '0';
@@ -98,7 +98,7 @@ void uint_to_char_array(unsigned int num, int len, unsigned char *dst) {
 }
 
 /* Prints a byte array in hexadecimal */
-void byte_array_print(unsigned char *buffer, unsigned int length) {
+void byte_array_print(const unsigned char *buffer, const unsigned int length) {
 	unsigned int i;
 	for (i = 0; i < length; i++) {
 		printf("%02x", buffer[i]);
