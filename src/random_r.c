@@ -22,7 +22,6 @@
  * Rewritten to be reentrant by Ulrich Drepper, 1995
  */
 
-#include <features.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdlib.h>
