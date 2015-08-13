@@ -1,5 +1,5 @@
 CCFLAGS = -std=c99 -O3 -Wno-deprecated-declarations
-LDFLAGS = -lcrypto -I../include
+LDFLAGS = -lcrypto
 
 TARGET = pixiewps
 SOURCE = $(TARGET).c random_r.c

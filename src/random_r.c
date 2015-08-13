@@ -29,6 +29,12 @@
 #include <unistd.h>
 /* #include <errno.h> */
 
+#ifdef __MACH__
+# include "../include/features.h"
+#else
+# include <features.h>
+#endif /* __MACH__ */
+
 #include "random_r.h"
 
 /* An improved random number generation package.  In addition to the standard
