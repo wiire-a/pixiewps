@@ -46,17 +46,21 @@
 #include <getopt.h>
 
 #include <sys/time.h>
+
+#include "utils.h"
+
 #ifdef __MACH__
 # include <libkern/OSByteOrder.h>
 # define be32(x) OSSwapBigToHostInt32(x)
+#elif __ANDROID__
+# define be32(x) h32tbe(x)
 #else
 # include <asm/byteorder.h>
 # define be32(x) __be32_to_cpu(x)
-#endif /* __MACH__ */
+#endif
 
 #include "pixiewps.h"
 #include "random_r.h"
-#include "utils.h"
 
 int32_t rand_r(uint32_t *seed);
 

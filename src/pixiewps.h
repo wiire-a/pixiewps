@@ -145,7 +145,6 @@ void hmac_sha256(const void *key, int key_len, const unsigned char *data, const 
 
 /* Key Derivation Function */
 void kdf(const void *key, const size_t key_len, unsigned char *res) {
-	uint32_t i = 1;
 	uint32_t kdk_len = key_len * 8;
 	uint_fast8_t j = 0;
 
@@ -154,7 +153,7 @@ void kdf(const void *key, const size_t key_len, unsigned char *res) {
 
 	unsigned char *buffer = malloc(WPS_KDF_SALT_LEN + 4 * 2);
 
-	for (i = 1; i < 4; i++) {
+	for (uint32_t i = 1; i < 4; i++) {
 		uint32_t be = be32(i);
 		memcpy(buffer, &be, 4);
 		memcpy(buffer + 4, salt, WPS_KDF_SALT_LEN);
