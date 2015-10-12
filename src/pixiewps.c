@@ -54,6 +54,16 @@
 # define be32(x) OSSwapBigToHostInt32(x)
 #elif __ANDROID__
 # define be32(x) h32tbe(x)
+#elif __unix__
+# include <sys/param.h>
+# ifdef __FreeBSD__
+#  include <sys/endian.h>
+#  if __BYTE_ORDER == __LITTLE_ENDIAN
+#   define be32(x) bswap32(x)
+#  else
+#   define be32(x) (x)
+#  endif
+# endif
 #else
 # include <asm/byteorder.h>
 # define be32(x) __be32_to_cpu(x)

@@ -30,6 +30,7 @@
 
 #ifdef __MACH__
 # include "../include/features.h"
+#elif __unix__
 #else
 # include <features.h>
 #endif /* __MACH__ */
