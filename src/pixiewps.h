@@ -154,10 +154,10 @@ void kdf(const void *key, const size_t key_len, unsigned char *res) {
 	unsigned char *buffer = malloc(WPS_KDF_SALT_LEN + 4 * 2);
 
 	for (uint32_t i = 1; i < 4; i++) {
-		uint32_t be = be32(i);
+		uint32_t be = h32_to_be(i);
 		memcpy(buffer, &be, 4);
 		memcpy(buffer + 4, salt, WPS_KDF_SALT_LEN);
-		be = be32(kdk_len);
+		be = h32_to_be(kdk_len);
 		memcpy(buffer + 4 + 36, &be, 4);
 		hmac_sha256(key, WPS_HASH_LEN, buffer, WPS_KDF_SALT_LEN + 4 * 2, res + j);
 		j += WPS_HASH_LEN;

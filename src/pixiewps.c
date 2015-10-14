@@ -48,17 +48,6 @@
 #include <sys/time.h>
 
 #include "utils.h"
-
-#ifdef __MACH__
-# include <libkern/OSByteOrder.h>
-# define be32(x) OSSwapBigToHostInt32(x)
-#elif __ANDROID__
-# define be32(x) h32tbe(x)
-#else
-# include <asm/byteorder.h>
-# define be32(x) __be32_to_cpu(x)
-#endif
-
 #include "pixiewps.h"
 #include "random_r.h"
 
@@ -429,7 +418,7 @@ int main(int argc, char **argv) {
 						srandom_r(print_seed + 1, buf);
 						for (uint_fast8_t j = 0; j < 4; j++) {
 							random_r(buf, &res);
-							uint32_t be = be32(res);
+							uint32_t be = h32_to_be(res);
 							memcpy(&(wps->e_s1[4 * j]), &be, 4);
 							memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
 						}

@@ -107,18 +107,18 @@ void byte_array_print(const unsigned char *buffer, const unsigned int length) {
 }
 
 /* Converts a 32 Little Endian bit number to its Big Endian representation */
-unsigned int h32tbe(uint32_t num) {
-	uint32_t temp = num;
+uint32_t h32_to_be(uint32_t num) {
+	uint32_t tmp = num;
 	uint32_t res;
 	uint32_t b0, b1, b2, b3;
 	unsigned int i = 1;
 	char *p = (char *) &i;
 
 	if (p[0] == 1) { /* LE */
-		b0 = (num & 0x000000ff) << 24;
-		b1 = (num & 0x0000ff00) << 8;
-		b2 = (num & 0x00ff0000) >> 8;
-		b3 = (num & 0xff000000) >> 24;
+		b0 = (tmp & 0x000000ff) << 24;
+		b1 = (tmp & 0x0000ff00) << 8;
+		b2 = (tmp & 0x00ff0000) >> 8;
+		b3 = (tmp & 0xff000000) >> 24;
 		res = b0 | b1 | b2 | b3;
 	} else {         /* BE */
 		res = num;
