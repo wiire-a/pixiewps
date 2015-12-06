@@ -18,24 +18,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef RANDOM_R_H
-#define RANDOM_R_H
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#if __STDC_VERSION__ < 199901L
+# define inline static
+#endif
 
 #include <stdint.h>
 
-struct random_data {
-  int32_t *fptr;    /* Front pointer */
-  int32_t *rptr;    /* Rear pointer */
-  int32_t *state;   /* Array of state values */
-  int rand_type;    /* Type of random number generator */
-  int rand_deg;     /* Degree of random number generator */
-  int rand_sep;     /* Distance between front and rear */
-  int32_t *end_ptr; /* Pointer behind state table */
-};
+typedef unsigned char uint8_t;
 
-void random_r(struct random_data *buf, int32_t *result);
-int srandom_r(unsigned int seed, struct random_data *buf);
-int initstate_r(unsigned int seed, char *arg_state, size_t n, struct random_data *buf);
-int setstate_r(char *arg_state, struct random_data *buf);
+#include "crypto/md_internal.h"
+#include "crypto/sha256.h"
 
-#endif /* RANDOM_R_H */
+#define sha256(i, l, d) mbedtls_sha256(i, l, d, 0)
+#define hmac_sha256(k, l, i, n, o) \
+	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), k, l, i, n, o)
+
+#endif /* CONFIG_H */

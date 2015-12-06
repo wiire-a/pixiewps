@@ -1,14 +1,17 @@
-CCFLAGS = -std=c99 -O3 -Wno-deprecated-declarations
-LDFLAGS = -lcrypto
+CCFLAGS = -std=c99 -O3 -Wall
 
 TARGET = pixiewps
-SOURCE = $(TARGET).c random_r.c
+CRYPTO = crypto/sha256.c crypto/md.c crypto/md_wrap.c
+SOURCE = $(TARGET).c random_r.c $(CRYPTO)
 PREFIX = $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
 OLDDIR = $(PREFIX)/local/bin
 
 all:
-	$(CC) $(CCFLAGS) -o $(TARGET) $(SOURCE) $(LDFLAGS)
+	$(CC) $(CCFLAGS) -o $(TARGET) $(SOURCE)
+
+debug:
+	$(CC) $(CCFLAGS) -DDEBUG -o $(TARGET) $(SOURCE)
 
 install:
 	rm -f $(OLDDIR)/$(TARGET)

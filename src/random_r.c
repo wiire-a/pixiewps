@@ -30,11 +30,8 @@
 
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
 # include <sys/param.h>
-# if defined(__APPLE__) && defined(__MACH__)
-#  include "../include/features.h"
-# elif(BSD)
-/* BSD (DragonFly BSD, FreeBSD, OpenBSD, NetBSD)
-   Nothing to include */
+# if defined(BSD) || defined(__APPLE__) && defined(__MACH__)
+   /* Nothing to include */
 # else
 #  include <features.h>
 # endif

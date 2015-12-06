@@ -18,24 +18,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#ifndef RANDOM_R_H
-#define RANDOM_R_H
+#ifndef VERSION_H
+#define VERSION_H
 
-#include <stdint.h>
+#define SHORT_VERSION "1.2"
+#define LONG_VERSION  "1.2.0"
 
-struct random_data {
-  int32_t *fptr;    /* Front pointer */
-  int32_t *rptr;    /* Rear pointer */
-  int32_t *state;   /* Array of state values */
-  int rand_type;    /* Type of random number generator */
-  int rand_deg;     /* Degree of random number generator */
-  int rand_sep;     /* Distance between front and rear */
-  int32_t *end_ptr; /* Pointer behind state table */
-};
-
-void random_r(struct random_data *buf, int32_t *result);
-int srandom_r(unsigned int seed, struct random_data *buf);
-int initstate_r(unsigned int seed, char *arg_state, size_t n, struct random_data *buf);
-int setstate_r(char *arg_state, struct random_data *buf);
-
-#endif /* RANDOM_R_H */
+#endif /* VERSION_H */

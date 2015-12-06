@@ -11,7 +11,6 @@ define Package/pixiewps
 	CATEGORY:=Network
 	SUBMENU:=wireless
 	TITLE:=An offline WPS bruteforce utility
-	DEPENDS:=+libopenssl
 	URL:=https://github.com/wiire/pixiewps
 endef
 
