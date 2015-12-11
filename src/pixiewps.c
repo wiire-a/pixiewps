@@ -773,7 +773,7 @@ usage_err:
 	}
 
 	c_end = clock();
-	long long ms_elapsed = (c_end - c_start) / 1000;
+	unsigned long long ms_elapsed = (c_end - c_start) / (CLOCKS_PER_SEC / 1000);
 
 	k--;
 
@@ -825,7 +825,7 @@ usage_err:
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
-	printf("\n\n [*] Time taken: %lld s %lld ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
+	printf("\n\n [*] Time taken: %llu s %llu ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
 
 	if (wps->warning) {
 		printf("%s", wps->warning);
