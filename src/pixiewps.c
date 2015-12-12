@@ -36,9 +36,9 @@
 #include "utils.h"
 #include "version.h"
 
-uint32_t rand_r_simplest(uint32_t *seed);
-uint32_t rand_r(uint32_t *seed);
-uint32_t knuth_rand(uint32_t *seed);
+uint32_t ecos_rand_simplest(uint32_t *seed);
+uint32_t ecos_rand_simple(uint32_t *seed);
+uint32_t ecos_rand_knuth(uint32_t *seed);
 uint_fast8_t crack(struct global *g, uint_fast32_t *pin);
 
 static const char *option_string = "e:r:s:z:a:n:m:b:Sfv:Vh?";
@@ -487,17 +487,17 @@ usage_err:
 				seed = index;
 				uint_fast8_t i;
 				for (i = 1; i < WPS_NONCE_LEN; i++) {
-					if (wps->e_nonce[i] != (uint8_t) (rand_r(&seed) & 0xff))
+					if (wps->e_nonce[i] != (uint8_t) (ecos_rand_simple(&seed) & 0xff))
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
 					print_seed = seed;
 
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
-						wps->e_s1[i] = (uint8_t) (rand_r(&seed) & 0xff);
+						wps->e_s1[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
 
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
-						wps->e_s2[i] = (uint8_t) (rand_r(&seed) & 0xff);
+						wps->e_s2[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
 
 					DEBUG_PRINT("Seed found");
 					break;
@@ -689,17 +689,17 @@ usage_err:
 				seed = index;
 				uint_fast8_t i;
 				for (i = 0; i < WPS_NONCE_LEN; i++) {
-					if (wps->e_nonce[i] != (uint8_t) rand_r_simplest(&seed))
+					if (wps->e_nonce[i] != (uint8_t) ecos_rand_simplest(&seed))
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
 					print_seed = seed;
 
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
-						wps->e_s1[i] = (uint8_t) rand_r_simplest(&seed);
+						wps->e_s1[i] = (uint8_t) ecos_rand_simplest(&seed);
 
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
-						wps->e_s2[i] = (uint8_t) rand_r_simplest(&seed);
+						wps->e_s2[i] = (uint8_t) ecos_rand_simplest(&seed);
 
 					DEBUG_PRINT("Seed found");
 					break;
@@ -733,17 +733,17 @@ usage_err:
 				seed = index;
 				uint_fast8_t i;
 				for (i = 0; i < WPS_NONCE_LEN; i++) {
-					if (wps->e_nonce[i] != (uint8_t) knuth_rand(&seed))
+					if (wps->e_nonce[i] != (uint8_t) ecos_rand_knuth(&seed))
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
 					print_seed = seed;
 
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
-						wps->e_s1[i] = (uint8_t) knuth_rand(&seed);
+						wps->e_s1[i] = (uint8_t) ecos_rand_knuth(&seed);
 
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
-						wps->e_s2[i] = (uint8_t) knuth_rand(&seed);
+						wps->e_s2[i] = (uint8_t) ecos_rand_knuth(&seed);
 
 					DEBUG_PRINT("Seed found");
 					break;
@@ -859,13 +859,13 @@ usage_err:
 }
 
 /* Simplest */
-uint32_t rand_r_simplest(uint32_t *seed) {
+uint32_t ecos_rand_simplest(uint32_t *seed) {
     *seed = (*seed * 1103515245) + 12345; /* Permutate seed */
     return *seed;
 }
 
 /* Simple, Linear congruential generator */
-uint32_t rand_r(uint32_t *seed) {
+uint32_t ecos_rand_simple(uint32_t *seed) {
 	uint32_t s = *seed;
 	uint32_t uret;
 
@@ -881,7 +881,7 @@ uint32_t rand_r(uint32_t *seed) {
 }
 
 /* Mersenne-Knuth */
-uint32_t knuth_rand(uint32_t *seed) {
+uint32_t ecos_rand_knuth(uint32_t *seed) {
 	#define MM 2147483647 /* Mersenne prime */
 	#define AA 48271      /* This does well in the spectral test */
 	#define QQ 44488      /* MM / AA */
