@@ -175,18 +175,23 @@ memory_err:
 				break;
 			case 'V':
 			{
-				struct timeval t_current;
-				gettimeofday(&t_current, 0);
-				time_t r_time;
-				struct tm ts;
-				char buffer[30];
-				r_time = t_current.tv_sec;
-				ts = *localtime(&r_time);
-				strftime(buffer, 30, "%c", &ts);
-				fprintf(stderr, "\n Pixiewps %s\n\n [*] System time: %s\n\n", LONG_VERSION, buffer);
-				free(wps->error);
-				free(wps);
-				return ARG_ERROR;
+				if (c > 1) { /* If --version is used then no other argument should be supplied */
+					snprintf(wps->error, 256, "\n [!] Bad use of argument --version (-V)!\n\n");
+					goto usage_err;
+				} else {
+					struct timeval t_current;
+					gettimeofday(&t_current, 0);
+					time_t r_time;
+					struct tm ts;
+					char buffer[30];
+					r_time = t_current.tv_sec;
+					ts = *localtime(&r_time);
+					strftime(buffer, 30, "%c", &ts);
+					fprintf(stderr, "\n Pixiewps %s\n\n [*] System time: %s\n\n", LONG_VERSION, buffer);
+					free(wps->error);
+					free(wps);
+					return ARG_ERROR;
+				}
 			}
 			case 'h':
 				goto usage_err;
@@ -250,6 +255,16 @@ memory_err:
 		if (!c) {
 usage_err:
 			fprintf(stderr, usage, SHORT_VERSION, argv[0], wps->error);
+
+			free(wps->pke);
+			free(wps->pkr);
+			free(wps->e_hash1);
+			free(wps->e_hash2);
+			free(wps->authkey);
+			free(wps->e_nonce);
+			free(wps->r_nonce);
+			free(wps->e_bssid);
+
 			free(wps->error);
 			free(wps);
 			return ARG_ERROR;
