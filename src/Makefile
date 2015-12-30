@@ -5,7 +5,7 @@ CRYPTO = crypto/sha256.c crypto/md.c crypto/md_wrap.c
 SOURCE = $(TARGET).c random_r.c $(CRYPTO)
 PREFIX = $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
-OLDDIR = $(PREFIX)/local/bin
+LOCDIR = $(PREFIX)/local/bin
 
 all:
 	$(CC) $(CCFLAGS) -o $(TARGET) $(SOURCE)
@@ -14,9 +14,10 @@ debug:
 	$(CC) $(CCFLAGS) -DDEBUG -o $(TARGET) $(SOURCE)
 
 install:
-	rm -f $(OLDDIR)/$(TARGET)
-	install $(TARGET) $(BINDIR)/$(TARGET)
-	install -m 755 $(TARGET) $(BINDIR)
+	rm -f $(BINDIR)/$(TARGET)
+	rm -f $(LOCDIR)/$(TARGET)
+	install -d $(DESTDIR)$(LOCDIR)
+	install -m 755 $(TARGET) $(DESTDIR)$(LOCDIR)
 
 uninstall:
 	rm $(BINDIR)/$(TARGET)
