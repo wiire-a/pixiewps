@@ -875,8 +875,8 @@ usage_err:
 
 /* Simplest */
 uint32_t ecos_rand_simplest(uint32_t *seed) {
-    *seed = (*seed * 1103515245) + 12345; /* Permutate seed */
-    return *seed;
+	*seed = (*seed * 1103515245) + 12345; /* Permutate seed */
+	return *seed;
 }
 
 /* Simple, Linear congruential generator */
@@ -902,11 +902,11 @@ uint32_t ecos_rand_knuth(uint32_t *seed) {
 	#define QQ 44488      /* MM / AA */
 	#define RR 3399       /* MM % AA, important that RR < QQ */
 
-    *seed = AA * (*seed % QQ) - RR * (*seed / QQ);
-    if (*seed & 0x80000000)
-        *seed += MM;
+	*seed = AA * (*seed % QQ) - RR * (*seed / QQ);
+	if (*seed & 0x80000000)
+		*seed += MM;
 
-    return *seed;
+	return *seed;
 }
 
 /* PIN cracking attempt */
