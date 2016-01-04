@@ -98,5 +98,5 @@ Pixiewps can be compiled and installed on a wide variety of platforms including 
 # References
 
 Pixiewps is based on the work of Dominique Bongard:
-1. [Video presentation](http://video.adm.ntnu.no/pres/549931214e18d)
-2. [Slide presentation](http://archive.hack.lu/2014/Hacklu2014_offline_bruteforce_attack_on_wps.pdf)
+- [Video presentation](http://video.adm.ntnu.no/pres/549931214e18d)
+- [Slide presentation](http://archive.hack.lu/2014/Hacklu2014_offline_bruteforce_attack_on_wps.pdf)
