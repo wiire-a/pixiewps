@@ -79,7 +79,7 @@ memory_err:
 		return MEM_ERROR;
 	}
 
-	time_t start_p = 0, end_p = 0;
+	time_t start_p = (time_t) -1, end_p = (time_t) -1;
 	clock_t c_start = 0, c_end;
 
 	int opt = 0;
@@ -185,9 +185,10 @@ memory_err:
 					struct tm ts;
 					char buffer[30];
 					r_time = t_current.tv_sec;
-					ts = *localtime(&r_time);
+					ts = *gmtime(&r_time);
 					strftime(buffer, 30, "%c", &ts);
-					fprintf(stderr, "\n Pixiewps %s\n\n [*] System time: %s\n\n", LONG_VERSION, buffer);
+					fprintf(stderr, "\n Pixiewps %s\n\n [*] System time: %lu (%s UTC)\n\n",
+						LONG_VERSION, (unsigned long) t_current.tv_sec, buffer);
 					free(wps->error);
 					free(wps);
 					return ARG_ERROR;
@@ -290,11 +291,9 @@ usage_err:
 	}
 
 	/* Cannot specify --start or --end if --force is selected */
-	if (wps->bruteforce && (start_p || end_p)) {
-		if (start_p || end_p) {
-			snprintf(wps->error, 256, "\n [!] Cannot specify --start or --end if --force is selected!\n\n");
-			goto usage_err;
-		}
+	if (wps->bruteforce && ((start_p != (time_t) -1) || (end_p != (time_t) -1))) {
+		snprintf(wps->error, 256, "\n [!] Cannot specify --start or --end if --force is selected!\n\n");
+		goto usage_err;
 	}
 
 	if (wps->mode_auto) { /* Mode auto */
@@ -337,8 +336,8 @@ usage_err:
 		wps->end = t_now.tv_sec - MODE3_DAYS * SEC_PER_DAY;
 
 		/* Attributes --start and --end can be switched start > end or end > start */
-		if (start_p) {
-			if (end_p) {
+		if (start_p != (time_t) -1) {
+			if (end_p != (time_t) -1) {
 
 				/* Attributes --start and --end must be different */
 				if (start_p == end_p) {
@@ -361,7 +360,7 @@ usage_err:
 				}
 			}
 		} else {
-			if (end_p) {
+			if (end_p != (time_t) -1) {
 				if (end_p >= wps->start) {
 					snprintf(wps->error, 256, "\n [!] Bad Ending point!\n\n");
 					goto usage_err;
@@ -589,14 +588,14 @@ usage_err:
 						{
 							struct tm ts;
 							char buffer[30];
-							ts = *localtime(&wps->start);
+							ts = *gmtime(&wps->start);
 							strftime(buffer, 30, "%c", &ts);
-							printf("\n [DEBUG] %s:%d:%s(): Start: %10ld (%s)",
-								__FILE__, __LINE__, __func__, (long) wps->start, buffer);
-							ts = *localtime(&wps->end);
+							printf("\n [DEBUG] %s:%d:%s(): Start: %10lu (%s UTC)",
+								__FILE__, __LINE__, __func__, (unsigned long) wps->start, buffer);
+							ts = *gmtime(&wps->end);
 							strftime(buffer, 30, "%c", &ts);
-							printf("\n [DEBUG] %s:%d:%s(): End:   %10ld (%s)",
-								__FILE__, __LINE__, __func__, (long) wps->end, buffer);
+							printf("\n [DEBUG] %s:%d:%s(): End:   %10lu (%s UTC)",
+								__FILE__, __LINE__, __func__, (unsigned long) wps->end, buffer);
 							fflush(stdout);
 						}
 						#endif
@@ -812,9 +811,9 @@ usage_err:
 					char buffer[30];
 
 					seed_time = print_seed;
-					ts = *localtime(&seed_time);
+					ts = *gmtime(&seed_time);
 					strftime(buffer, 30, "%c", &ts);
-					printf(" (%s)", buffer);
+					printf(" (%s UTC)", buffer);
 				}
 			}
 		}

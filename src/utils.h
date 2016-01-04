@@ -74,11 +74,43 @@ int get_int(char *in, int *out) {
 	return 0;
 };
 
+/* Custom timegm function made by Eric S Raymond */
+time_t c_timegm(register struct tm *t) {
+	register long year;
+	register time_t result;
+
+	#define MONTHS_PER_YEAR 12 /* Months per calendar year */
+
+	static const int cumdays[MONTHS_PER_YEAR] =
+		{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+
+	year = 1900 + t->tm_year + t->tm_mon / MONTHS_PER_YEAR;
+	result = (year - 1970) * 365 + cumdays[t->tm_mon % MONTHS_PER_YEAR];
+	result += (year - 1968) / 4;
+	result -= (year - 1900) / 100;
+	result += (year - 1600) / 400;
+	if ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) &&
+		(t->tm_mon % MONTHS_PER_YEAR) < 2) {
+		result--;
+	}
+	result += t->tm_mday - 1;
+	result *= 24;
+	result += t->tm_hour;
+	result *= 60;
+	result += t->tm_min;
+	result *= 60;
+	result += t->tm_sec;
+	if (t->tm_isdst == 1)
+		result -= 3600;
+
+	return result;
+}
+
 /* Converts a [mm/]yyyy string to Unix date time */
 unsigned int get_unix_datetime(char *s, time_t *datetime) {
 	unsigned int len = strlen(s);
 	int month = 0, year;
-	struct tm tm;
+	struct tm t;
 
 	if (len == 4) {
 		if (get_int(s, &year))
@@ -106,18 +138,20 @@ unsigned int get_unix_datetime(char *s, time_t *datetime) {
 
 		if (get_int(s_month, &month) || get_int(s_year, &year))
 			return 1;
+		if ((year < 1970 && year > 2037) || (month < 1 && month > 12))
+			return 1;
 	} else {
 		return 1;
 	}
 
-	tm.tm_sec = 0;
-	tm.tm_min = 0;
-	tm.tm_hour = 0;
-	tm.tm_mday = 1;
-	tm.tm_mon = month - 1;
-	tm.tm_year = year - 1900;
-	tm.tm_isdst = -1;
-	*datetime = mktime(&tm);
+	t.tm_sec = 0;
+	t.tm_min = 0;
+	t.tm_hour = 0;
+	t.tm_mday = 1;
+	t.tm_mon = month - 1;
+	t.tm_year = year - 1900;
+	t.tm_isdst = 0;
+	*datetime = c_timegm(&t);
 
 	if (*datetime < 0)
 		return 1;
