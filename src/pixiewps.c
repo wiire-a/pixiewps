@@ -24,9 +24,9 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <string.h>
-#include <time.h>
 #include <getopt.h>
 
+#include <sys/types.h>
 #include <sys/time.h>
 
 #include "pixiewps.h"
@@ -80,7 +80,7 @@ memory_err:
 	}
 
 	time_t start_p = (time_t) -1, end_p = (time_t) -1;
-	clock_t c_start = 0, c_end;
+	struct timeval t_start, t_end;
 
 	int opt = 0;
 	int long_index = 0;
@@ -328,12 +328,12 @@ usage_err:
 		p_mode[4], p_mode_name[p_mode[4]]
 	);
 
+	gettimeofday(&t_start, 0);
+
 	if (is_mode_selected(RTL819x)) { /* Ignore --start and --end otherwise */
 
-		struct timeval t_now;
-		gettimeofday(&t_now, 0);
-		wps->start = t_now.tv_sec;
-		wps->end = t_now.tv_sec - MODE3_DAYS * SEC_PER_DAY;
+		wps->start = t_start.tv_sec;
+		wps->end = t_start.tv_sec - MODE3_DAYS * SEC_PER_DAY;
 
 		/* Attributes --start and --end can be switched start > end or end > start */
 		if (start_p != (time_t) -1) {
@@ -397,8 +397,6 @@ usage_err:
 						uint8_t *buffer = malloc(WPS_NONCE_LEN * 2 + WPS_BSSID_LEN);
 						if (!buffer)
 							goto memory_err;
-
-						c_start = clock();
 
 						/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKe) (g = 2, A = 1, p > 2) */
 						sha256(wps->pke, WPS_PKEY_LEN, wps->dhkey);
@@ -467,9 +465,6 @@ usage_err:
 	unsigned int pin;
 	uint32_t seed;
 	uint32_t print_seed = 0;
-
-	if (!c_start)
-		c_start = clock();
 
 	/* Main loop */
 	while (!found_p_mode && p_mode[k] != NONE && k < MODE_LEN) {
@@ -786,8 +781,8 @@ usage_err:
 		k++;
 	}
 
-	c_end = clock();
-	unsigned long long ms_elapsed = (c_end - c_start) / (CLOCKS_PER_SEC / 1000);
+	gettimeofday(&t_end, 0);
+	unsigned long ms_elapsed = get_elapsed_ms(&t_start, &t_end);
 
 	k--;
 
@@ -839,7 +834,7 @@ usage_err:
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
-	printf("\n\n [*] Time taken: %llu s %llu ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
+	printf("\n\n [*] Time taken: %lu s %lu ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
 
 	if (wps->warning) {
 		printf("%s", wps->warning);
