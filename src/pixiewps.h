@@ -214,10 +214,10 @@ char v_usage[] =
 	"\n";
 
 /* One digit comma separated number parsing */
-inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint_fast8_t max_digit) {
+inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint8_t max_digit) {
 	uint_fast8_t cnt = 0;
 	while (*list != 0) {
-		if (*list <= (max_digit + '0')) {
+		if (*list <= ((char) max_digit) + '0') {
 			dst[cnt] = *list - '0';
 			cnt++;
 			list++;
