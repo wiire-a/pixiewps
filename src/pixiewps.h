@@ -2,8 +2,8 @@
  * Pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
  *           All credits for the research go to Dominique Bongard.
  *
- * Copyright (c) 2015, wiire <wi7ire@gmail.com>
- * SPDX-License-Identifier: GPL-3.0
+ * Copyright (c) 2015-2016, wiire <wi7ire@gmail.com>
+ * SPDX-License-Identifier: GPL-3.0+
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -111,7 +111,7 @@ struct global {
 char usage[] =
 	"\n"
 	" Pixiewps %s WPS pixie dust attack tool\n"
-	" Copyright (c) 2015, wiire <wi7ire@gmail.com>\n"
+	" Copyright (c) 2015-2016, wiire <wi7ire@gmail.com>\n"
 	"\n"
 	" Usage: %s <arguments>\n"
 	"\n"
@@ -147,7 +147,7 @@ char usage[] =
 char v_usage[] =
 	"\n"
 	" Pixiewps %s WPS pixie dust attack tool\n"
-	" Copyright (c) 2015, wiire <wi7ire@gmail.com>\n"
+	" Copyright (c) 2015-2016, wiire <wi7ire@gmail.com>\n"
 	"\n"
 	" Description of arguments:\n"
 	"\n"
