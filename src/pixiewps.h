@@ -193,11 +193,11 @@ char v_usage[] =
 	" -S, --dh-small\n"
 	"\n"
 	"    Small Diffie-Hellman keys. The same option MUST be specified in Reaver "
-	"(1.3 or later versions) too. It DOES NOT WORK with mode 3.\n"
+	"(1.3 or later versions) too. This option DOES NOT WORK (currently) with mode 3.\n"
 	"\n"
 	" --mode N[,... N]\n"
 	"\n"
-	"    Select modes, comma separated (experimental modes are not used if not specified):\n"
+	"    Select modes, comma separated (experimental modes are not used unless specified):\n"
 	"\n"
 	"      1 (%s)\n"
 	"      2 (%s)\n"
@@ -209,7 +209,8 @@ char v_usage[] =
 	" --end   [mm/]yyyy\n"
 	"\n"
 	"    Starting and ending dates for mode 3. They are interchangeable. "
-	"If only one is specified, the machine current time will be used for the other.\n"
+	"If only one is specified, the machine current time will be used for the other. "
+	"The earliest possible date is 01/1970 corresponding to 0 (Epoch time).\n"
 	"\n";
 
 /* One digit comma separated number parsing */
