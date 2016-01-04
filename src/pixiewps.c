@@ -39,7 +39,7 @@
 uint32_t ecos_rand_simplest(uint32_t *seed);
 uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
-uint_fast8_t crack(struct global *g, uint_fast32_t *pin);
+uint_fast8_t crack(struct global *g, unsigned int *pin);
 
 static const char *option_string = "e:r:s:z:a:n:m:b:Sfv:Vh?";
 static const struct option long_options[] = {
@@ -464,7 +464,7 @@ usage_err:
 
 	uint_fast8_t k = 0;
 	uint_fast8_t found_p_mode = NONE;
-	uint_fast32_t pin;
+	unsigned int pin;
 	uint32_t seed;
 	uint32_t print_seed = 0;
 
@@ -909,7 +909,7 @@ uint32_t ecos_rand_knuth(uint32_t *seed) {
 }
 
 /* PIN cracking attempt */
-uint_fast8_t crack(struct global *g, uint_fast32_t *pin) {
+uint_fast8_t crack(struct global *g, unsigned int *pin) {
 	struct global *wps = g;
 	unsigned int first_half = 0;
 	unsigned int second_half = 0;
