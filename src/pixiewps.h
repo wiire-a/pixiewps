@@ -57,7 +57,7 @@
 #endif
 
 uint_fast8_t p_mode[MODE_LEN] = { 0 };
-const char *p_mode_name[MODE_LEN + 1] = { "", "RT", "eCos simple", "RTL819x", "eCos simplest", "eCos Knuth" };
+const char *p_mode_name[MODE_LEN + 1] = { "", "RT/MT", "eCos simple", "RTL819x", "eCos simplest", "eCos Knuth" };
 
 const uint8_t wps_rtl_pke[] = {
 	0xD0,0x14,0x1B,0x15, 0x65,0x6E,0x96,0xB8, 0x5F,0xCE,0xAD,0x2E, 0x8E,0x76,0x33,0x0D,
