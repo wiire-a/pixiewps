@@ -1,14 +1,22 @@
-# Overview [![License](https://img.shields.io/badge/License-GPL%20v3%2B-blue.svg?style=flat-square)] (https://github.com/wiire/pixiewps/blob/master/LICENSE.md)
+# Overview [![License](https://img.shields.io/badge/License-GPL%20v3%2B-blue.svg?style=flat-square)](https://github.com/wiire/pixiewps/blob/master/LICENSE.md)
 
-**Pixiewps** is a tool written in C used to **bruteforce offline** the WPS pin exploiting the low or non-existing entropy of some APs (pixie dust attack). It is meant for educational purposes only.
+**Pixiewps** is a tool written in C used to **bruteforce offline** the WPS pin exploiting the low or non-existing entropy of some Access Points, the so-called "pixie dust attack" discovered by Dominique Bongard in summer 2014. It is meant for educational purposes only.
 
-- - -
+As opposed to the traditional online bruteforce attack, implemented in tools like **Reaver** or **Bully** which aim to recover the pin in a few hours, this method can get the pin in only a matter of **milliseconds** to **minutes**, depending on the target, **if vulnerable**.
+
+![pixiewps_screenshot](http://i.imgur.com/JOa5uTp.png)
+
+More details can be found here:
+- [https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool](https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool)
+- [https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack)](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack))
 
 # Requirements
 
-Prior versions of 1.2 require [libssl-dev](https://www.openssl.org/).
+```
+apt-get -y install build-essential
+```
 
-- - -
+Prior versions of 1.2 require [libssl-dev](https://www.openssl.org/).
 
 # Setup
 
@@ -30,9 +38,9 @@ make
 
 **Install**
 
-`sudo make install`
-
-- - -
+```
+sudo make install
+```
 
 # Usage
 
@@ -69,7 +77,23 @@ Optional Arguments:
 A common usage example is:
 
 ```
-    pixiewps --pke <pke> --pkr <pkr> --e-hash1 <e-hash1> --e-hash2 <e-hash2> --authkey <authkey> --e-nonce <e-nonce>
+pixiewps --pke <pke> --pkr <pkr> --e-hash1 <e-hash1> --e-hash2 <e-hash2> --authkey <authkey> --e-nonce <e-nonce>
 ```
 
-which requires a modified version of Reaver or Bully which prints *AuthKey*. The recommended version is [reaver-wps-fork-t6x](https://github.com/t6x/reaver-wps-fork-t6x).
+which requires a modified version of Reaver or Bully which prints the *Authentication Session key* (`--authkey`, `-a`). The recommended version is [reaver-wps-fork-t6x](https://github.com/t6x/reaver-wps-fork-t6x).
+
+# Supported OS
+
+Pixiewps can be compiled and installed on a wide variety of platforms including [OpenWrt](https://openwrt.org/) and Android.
+
+# Acknowledgements
+
+- Part of the code was inspired by Bully and its WPS functionality written by Jouni Malinen
+- The crypto libraries were taken from [mbed TLS](https://tls.mbed.org/)
+- Special thanks to the users: `soxrok2212`, `datahead`, `t6_x`, `aanarchy`, `kcdtv` and the [Kali Linux](https://www.kali.org/) community
+
+# References
+
+Pixiewps is based on the work of Dominique Bongard:
+- [Video presentation](http://video.adm.ntnu.no/pres/549931214e18d)
+- [Slide presentation](http://archive.hack.lu/2014/Hacklu2014_offline_bruteforce_attack_on_wps.pdf)
