@@ -2,13 +2,16 @@
 
 **Pixiewps** is a tool written in C used to **bruteforce offline** the WPS pin exploiting the low or non-existing entropy of some Access Points, the so-called "pixie dust attack" discovered by Dominique Bongard in summer 2014. It is meant for educational purposes only.
 
-As opposed to the traditional online bruteforce attack, implemented in tools like **Reaver** or **Bully** which aim to recover the pin in a few hours, this method can get the pin in only a matter of **milliseconds** to **minutes**, depending on the target, **if vulnerable**.
+As opposed to the traditional online bruteforce attack, implemented in tools like Reaver or Bully which aim to recover the pin in a few hours, this method can get the pin in only a matter of **milliseconds** to **minutes**, depending on the target, **if vulnerable**.
 
 ![pixiewps_screenshot](http://i.imgur.com/JOa5uTp.png)
 
 More details can be found here:
 - [https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool](https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool)
 - [https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack)](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack))
+
+A non-exhaustive list of vulnerable devices (not maintained by me):
+- [https://docs.google.com/spreadsheets/d/1tSlbqVQ59kGn8hgmwcPTHUECQ3o9YhXR91A_p7Nnj5Y/edit?pref=2&pli=1#gid=2048815923](https://docs.google.com/spreadsheets/d/1tSlbqVQ59kGn8hgmwcPTHUECQ3o9YhXR91A_p7Nnj5Y/edit?pref=2&pli=1#gid=2048815923)
 
 # Requirements
 
@@ -90,10 +93,10 @@ Pixiewps can be compiled and installed on a wide variety of platforms including 
 
 - Part of the code was inspired by Bully and its WPS functionality written by Jouni Malinen
 - The crypto libraries were taken from [mbed TLS](https://tls.mbed.org/)
-- Special thanks to the users: `soxrok2212`, `datahead`, `t6_x`, `aanarchy`, `kcdtv` and the [Kali Linux](https://www.kali.org/) community
+- Special thanks to: `soxrok2212`, `datahead`, `t6_x`, `aanarchyy`, `kcdtv` and the [Kali Linux](https://www.kali.org/) community
 
 # References
 
 Pixiewps is based on the work of Dominique Bongard:
-- [Video presentation](http://video.adm.ntnu.no/pres/549931214e18d)
-- [Slide presentation](http://archive.hack.lu/2014/Hacklu2014_offline_bruteforce_attack_on_wps.pdf)
+1. [Video presentation](http://video.adm.ntnu.no/pres/549931214e18d)
+2. [Slide presentation](http://archive.hack.lu/2014/Hacklu2014_offline_bruteforce_attack_on_wps.pdf)
