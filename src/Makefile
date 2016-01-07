@@ -16,8 +16,8 @@ debug:
 install:
 	rm -f $(BINDIR)/$(TARGET)
 	rm -f $(LOCDIR)/$(TARGET)
-	install -d $(DESTDIR)$(LOCDIR)
-	install -m 755 $(TARGET) $(DESTDIR)$(LOCDIR)
+	install -d $(LOCDIR)
+	install -m 755 $(TARGET) $(LOCDIR)
 
 uninstall:
 	rm $(BINDIR)/$(TARGET)
