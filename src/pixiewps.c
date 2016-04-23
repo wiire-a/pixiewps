@@ -297,7 +297,9 @@ usage_err:
 	}
 
 	if (wps->mode_auto) { /* Mode auto */
-		if (wps->pke && !memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN)) {
+		if (wps->pke && (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
+						 !(wps->e_nonce[8] & 0x80) && !(wps->e_nonce[12] & 0x80))) {
+
 			p_mode[0] = RTL819x;
 			p_mode[1] = NONE;
 			if (!wps->e_nonce) {
