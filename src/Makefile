@@ -20,7 +20,7 @@ install:
 	install -m 755 $(TARGET) $(LOCDIR)
 
 uninstall:
-	rm $(BINDIR)/$(TARGET)
+	rm $(LOCDIR)/$(TARGET)
 
 clean:
 	rm -f $(TARGET)
