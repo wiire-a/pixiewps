@@ -371,6 +371,7 @@ usage_err:
 				}
 			} else {
 				if (wps->bruteforce)
+					wps->start += SEC_PER_DAY >> 1; /* Extra 12 hour span */
 					wps->end = 0;
 			}
 		}
