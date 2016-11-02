@@ -19,7 +19,7 @@ install:
 	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)
 
 uninstall:
-	rm $(BINDIR)/$(TARGET)
+	rm -f $(BINDIR)/$(TARGET)
 
 clean:
 	rm -f $(TARGET)
