@@ -6,7 +6,6 @@ SOURCE = $(TARGET).c random_r.c $(CRYPTO)
 PREFIX ?= $(DESTDIR)/usr
 PREFIX = $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
-LOCDIR ?= $(PREFIX)/local
 
 all:
 	$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LDFLAGS)
@@ -16,12 +15,11 @@ debug:
 
 install:
 	rm -f $(BINDIR)/$(TARGET)
-	rm -f $(LOCDIR)/$(TARGET)
-	install -d $(DESTDIR)$(LOCDIR)$(BINDIR)
-	install -m 755 $(TARGET) $(DESTDIR)$(LOCDIR)$(BINDIR)
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)
 
 uninstall:
-	rm $(LOCDIR)/$(TARGET)
+	rm $(BINDIR)/$(TARGET)
 
 clean:
 	rm -f $(TARGET)
