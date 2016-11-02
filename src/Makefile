@@ -4,7 +4,6 @@ TARGET = pixiewps
 CRYPTO = crypto/sha256.c crypto/md.c crypto/md_wrap.c
 SOURCE = $(TARGET).c random_r.c $(CRYPTO)
 PREFIX ?= $(DESTDIR)/usr
-PREFIX = $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
 
 all:
