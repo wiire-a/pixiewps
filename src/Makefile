@@ -1,4 +1,4 @@
-CCFLAGS += -std=c99 -O3
+CCFLAGS ?= -std=c99 -O3
 
 TARGET = pixiewps
 CRYPTO = crypto/sha256.c crypto/md.c crypto/md_wrap.c
