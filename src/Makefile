@@ -10,7 +10,7 @@ all:
 	$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LDFLAGS)
 
 debug:
-	$(CC) $(CCFLAGS) -DDEBUG -o $(TARGET) $(SOURCE)
+	$(CC) $(CLFAGS) $(CCFLAGS) $(CPPFLAGS) -DDEBUG -o $(TARGET) $(SOURCE) $(LDFLAGS)
 
 install:
 	rm -f $(BINDIR)/$(TARGET)
