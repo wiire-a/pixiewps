@@ -1,0 +1,103 @@
+.TH PIXIEWPS "1" "September 2016" "pixiewps " "Offline WPS bruteforce tool"
+.SH NAME
+\fBpixiewps\fR \- Offline WPS bruteforce tool
+.SH DESCRIPTION
+.IP
+Pixiewps is a tool written in C used to bruteforce offline the WPS pin
+exploiting the low or non-existing entropy of some APs (pixie dust attack).
+.IP
+It is meant for educational purposes only.
+.IP
+.PP
+.SH SYNOPSIS
+.B pixiewps <arguments>
+.SH ARGUMENTS
+.SS REQUIRED ARGUMENTS
+\fB\-e\fR, \fB\-\-pke\fR
+.IP
+Enrollee DH public key, found in M1.
+.PP
+\fB\-r\fR, \fB\-\-pkr\fR
+.IP
+Registrar DH public key, found in M2. It can be avoided by specifying \fB\-S, \-\-dh\-small\fR in both Reaver and Pixiewps.
+.IP
+pixiewps \fB\-e\fR <pke> \fB\-s\fR <e\-hash1> \fB\-z\fR <e\-hash2> \fB\-a\fR <authkey> \fB\-n\fR <e\-nonce> \fB\-S\fR
+.PP
+\fB\-s\fR, \fB\-\-e\-hash1\fR
+.IP
+Enrollee hash\-1, found in M3.
+.PP
+\fB\-z\fR, \fB\-\-e\-hash2\fR
+.IP
+Enrollee hash\-2, found in M3.
+.PP
+\fB\-a\fR, \fB\-\-authkey\fR
+.IP
+Authentication session key. Although for this parameter a modified version of Reaver or Bully is needed, it can be avoided by specifying small Diffie\-Hellman keys in both Reaver and Pixiewps and supplying \fB\-\-e\-nonce\fR, \fB\-\-r\-nonce\fR and \fB\-\-e\-bssid\fR.
+.IP
+pixiewps \fB\-e\fR <pke> \fB\-s\fR <e\-hash1> \fB\-z\fR <e\-hash2> \fB\-S\fR \fB\-n\fR <e\-nonce> \fB\-m\fR <r\-nonce> \fB\-b\fR <e\-bssid>
+.PP
+\fB\-n\fR, \fB\-\-e\-nonce\fR
+.IP
+Enrollee's nonce, found in M1.
+.PP
+.SS OPTIONAL ARGUMENTS
+\fB\-m\fR, \fB\-\-r\-nonce\fR
+.IP
+Registrar's nonce, found in M2.
+.PP
+\fB\-b\fR, \fB\-\-e\-bssid\fR
+.IP
+Enrollee's BSSID.
+.PP
+\fB\-S\fR, \fB\-\-dh\-small\fR
+.IP
+Small Diffie\-Hellman keys. The same option MUST be specified in Reaver (1.3 or later versions) too. This option DOES NOT WORK (currently) with mode 3.
+.PP
+\fB\-v\fR, \fB\-\-verbosity\fR
+.IP
+Verbosity level 1-3, 1 is quietest, default is 3.
+.PP
+\fB\-h\fR
+.IP
+Display a simple help usage screen.
+.PP
+\fB\-\-help\fR
+.IP
+Display verbose help.
+.PP
+\fB\-V\fR, \fB\-\-version\fR
+.IP
+Display version information.
+.PP
+\fB\-\-mode\fR N[,... N]
+.IP
+Select modes, comma separated (experimental modes are not used unless specified):
+.IP
+\fB1\fR \- RT/MT
+.IP
+\fB2\fR \- eCos simple
+.IP
+\fB3\fR \- RTL819x
+.IP
+\fB4\fR \- eCos simplest [Experimental]
+.IP
+\fB5\fR \- eCos Knuth    [Experimental]
+.PP
+\fB\-\-start\fR [mm/]yyyy
+.TP
+\fB\-\-end\fR
+[mm/]yyyy
+.IP
+Starting and ending dates for mode 3, they are interchangeable.
+.IP
+If only one is specified, the machine current time will be used for the other. The earliest possible date is 01/1970, corresponding to 0 (Epoch time).
+.IP
+.SH EXAMPLES
+pixiewps --pke <pke> --pkr <pkr> --e-hash1 <e-hash1> --e-hash2 <e-hash2> --authkey <authkey> --e-nonce <e-nonce>
+.PP
+pixiewps -e <pke> -r <pkr> -s <e-hash1> -z <e-hash2> -a <authkey> -n <e-nonce>
+.SH AUTHOR
+Pixiewps was developed by wi7ire.
+.PP
+This manual page was written by Daniel Echeverry <epsilon77@gmail.com> and Samuel Henrique <samueloph@gmail.com> for the Debian project, but can be used by other projects as well.
