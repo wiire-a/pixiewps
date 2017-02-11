@@ -273,7 +273,7 @@ usage_err:
 	}
 
 	/* Not all required arguments have been supplied */
-	if (wps->pke == 0 || wps->e_hash1 == 0 || wps->e_hash2 == 0) {
+	if (wps->pke == 0 || wps->e_hash1 == 0 || wps->e_hash2 == 0 || wps->e_nonce == 0) {
 		snprintf(wps->error, 256, "\n [!] Not all required arguments have been supplied!\n\n");
 		goto usage_err;
 	}
