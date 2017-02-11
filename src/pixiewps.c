@@ -297,17 +297,13 @@ usage_err:
 	}
 
 	if (wps->mode_auto) { /* Mode auto */
+		p_mode[0] = RT;
 		if (wps->pke && (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
 						 !(wps->e_nonce[8] & 0x80) && !(wps->e_nonce[12] & 0x80))) {
-
-			p_mode[0] = RTL819x;
-			p_mode[1] = NONE;
-			if (!wps->e_nonce) {
-				snprintf(wps->error, 256, "\n [!] Enrollee nonce is needed for mode %u!\n\n", RTL819x);
-				goto usage_err;
-			}
+			p_mode[1] = RTL819x;
+			p_mode[2] = ECOS_SIMPLE;
+			p_mode[3] = NONE;
 		} else {
-			p_mode[0] = RT;
 			p_mode[1] = ECOS_SIMPLE;
 
 			/* Not tested */
