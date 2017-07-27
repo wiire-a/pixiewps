@@ -32,7 +32,8 @@
 /* Modes constants */
 #define MODE_LEN              5
 #define MODE3_DAYS            3
-#define MODE3_TRIES           3
+#define MODE3_DAYS_UPTIME     9
+#define MODE3_TRIES          20
 #define SEC_PER_DAY       86400
 
 /* Exit costants */
