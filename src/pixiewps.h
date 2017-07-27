@@ -53,7 +53,7 @@
 	__FILE__, __LINE__, __func__, ##args); fflush(stdout);
 # define DEBUG_PRINT_ARRAY(b, l); byte_array_print(b, l); fflush(stdout);
 #else
-# define DEBUG_PRINT(fmt, ...)
+# define DEBUG_PRINT(fmt, args...)
 # define DEBUG_PRINT_ARRAY(b, l)
 #endif
 
