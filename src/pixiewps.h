@@ -32,7 +32,8 @@
 /* Modes constants */
 #define MODE_LEN              5
 #define MODE3_DAYS            3
-#define MODE3_TRIES           3
+#define MODE3_DAYS_UPTIME     9
+#define MODE3_TRIES          20
 #define SEC_PER_DAY       86400
 
 /* Exit costants */
@@ -52,7 +53,7 @@
 	__FILE__, __LINE__, __func__, ##args); fflush(stdout);
 # define DEBUG_PRINT_ARRAY(b, l); byte_array_print(b, l); fflush(stdout);
 #else
-# define DEBUG_PRINT(fmt, args...)
+# define DEBUG_PRINT(fmt, ...)
 # define DEBUG_PRINT_ARRAY(b, l)
 #endif
 
