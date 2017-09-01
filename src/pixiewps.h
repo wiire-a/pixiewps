@@ -41,6 +41,8 @@
 #define MEM_ERROR             2
 #define ARG_ERROR             3
 
+#define EMPTY_PIN             999999999
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>

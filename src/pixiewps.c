@@ -830,7 +830,11 @@ usage_err:
 			printf("\n [*] E-S1:       "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
 			printf("\n [*] E-S2:       "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
 		}
-		printf("\n [+] WPS pin:    %08u", pin);
+		if (pin == EMPTY_PIN) {
+			printf("\n [+] WPS pin:    <empty>");
+		} else {
+			printf("\n [+] WPS pin:    %08u", pin);
+		}
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
@@ -919,6 +923,36 @@ uint_fast8_t crack(struct global *g, unsigned int *pin) {
 	if (!result)
 		return MEM_ERROR;
 
+	/* Check for empty pin (length = 0) */
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->psk1);
+	memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+		WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+	if (!memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+		/* Second half must be empty too */
+		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->psk2);
+		memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+		if (!memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+			/* Empty pin detected */
+			free(buffer);
+			free(result);
+
+			*pin = EMPTY_PIN;
+			return 0;
+		}
+	}
+
+	/* Brute-force numeric pins */
 	while (first_half < 10000) {
 		uint_to_char_array(first_half, 4, s_pin);
 		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk1);
