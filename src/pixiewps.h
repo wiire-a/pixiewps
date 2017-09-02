@@ -132,6 +132,7 @@ char usage[] =
 	"   -b, --e-bssid     : Enrollee BSSID\n"
 	"   -S, --dh-small    : Small Diffie-Hellman keys (PKr not needed)  [No]\n"
 	"   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]\n"
+	"   -o, --output      : Write output to file\n"
 	"\n"
 	"   -h                : Display this usage screen\n"
 	"   --help            : Verbose help and more usage examples\n"

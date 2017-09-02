@@ -41,7 +41,7 @@ uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
 uint_fast8_t crack(struct global *g, unsigned int *pin);
 
-static const char *option_string = "e:r:s:z:a:n:m:b:Sfv:Vh?";
+static const char *option_string = "e:r:s:z:a:n:m:b:Sfo:v:Vh?";
 static const struct option long_options[] = {
 	{ "pke",       required_argument, 0, 'e' },
 	{ "pkr",       required_argument, 0, 'r' },
@@ -53,6 +53,7 @@ static const struct option long_options[] = {
 	{ "e-bssid",   required_argument, 0, 'b' },
 	{ "dh-small",  no_argument,       0, 'S' },
 	{ "force",     no_argument,       0, 'f' },
+	{ "output",    required_argument, 0, 'o' },
 	{ "verbosity", required_argument, 0, 'v' },
 	{ "version",   no_argument,       0, 'V' },
 	{ "help",      no_argument,       0,  0  },
@@ -166,6 +167,13 @@ memory_err:
 				break;
 			case 'f':
 				wps->bruteforce = 1;
+				break;
+			case 'o':
+				if (!freopen(optarg, "w", stdout))
+				{
+					snprintf(wps->error, 256, "\n [!] Failed to open file for writing -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'v':
 				if (get_int(optarg, &wps->verbosity) != 0 || wps->verbosity < 1 || wps->verbosity > 3) {

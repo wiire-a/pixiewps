@@ -65,6 +65,7 @@ Optional Arguments:
   -b, --e-bssid     : Enrollee BSSID
   -S, --dh-small    : Small Diffie-Hellman keys (PKr not needed)  [No]
   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]
+  -o, --output      : Write output to file
 
   -h                : Display this usage screen
   --help            : Verbose help and more usage examples
