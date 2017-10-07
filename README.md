@@ -64,7 +64,10 @@ Optional Arguments:
   -m, --r-nonce     : Registrar nonce
   -b, --e-bssid     : Enrollee BSSID
   -S, --dh-small    : Small Diffie-Hellman keys (PKr not needed)  [No]
+  -f, --force       : Brute-force timestamp seed
+  -l, --length      : Brute-force entire pin length (experimental)
   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]
+  -o, --output      : Write output to file
 
   -h                : Display this usage screen
   --help            : Verbose help and more usage examples

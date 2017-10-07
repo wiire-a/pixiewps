@@ -103,6 +103,7 @@ struct global {
 	uint8_t small_dh_keys;
 	uint8_t mode_auto;
 	uint8_t bruteforce;
+	uint8_t anylength;
 	int verbosity;
 	char *error;
 	char *warning;
@@ -129,7 +130,10 @@ char usage[] =
 	"   -m, --r-nonce     : Registrar nonce\n"
 	"   -b, --e-bssid     : Enrollee BSSID\n"
 	"   -S, --dh-small    : Small Diffie-Hellman keys (PKr not needed)  [No]\n"
+	"   -f, --force       : Brute-force timestamp seed\n"
+	"   -l, --length      : Brute-force entire pin length (experimental)\n"
 	"   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]\n"
+	"   -o, --output      : Write output to file\n"
 	"\n"
 	"   -h                : Display this usage screen\n"
 	"   --help            : Verbose help and more usage examples\n"

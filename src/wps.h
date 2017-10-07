@@ -22,6 +22,7 @@
 #define WPS_H
 
 /* WPS constants */
+#define WPS_PIN_LEN           8
 #define WPS_PKEY_LEN        192
 #define WPS_HASH_LEN         32
 #define WPS_AUTHKEY_LEN      32
