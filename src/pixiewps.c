@@ -474,11 +474,9 @@ usage_err:
 
 	uint_fast8_t k = 0;
 	uint_fast8_t found_p_mode = NONE;
-	char *pin;
+	char pin[WPS_PIN_LEN + 1];
 	uint32_t seed;
 	uint32_t print_seed = 0;
-
-	pin = calloc(WPS_PIN_LEN + 1, 1); if (!pin) goto memory_err;
 
 	/* Main loop */
 	while (!found_p_mode && p_mode[k] != NONE && k < MODE_LEN) {
@@ -844,7 +842,7 @@ usage_err:
 			printf("\n [*] E-S1:       "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
 			printf("\n [*] E-S2:       "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
 		}
-		if (strlen(pin) == 0) {
+		if (pin[0] == '\0') {
 			printf("\n [+] WPS pin:    <empty>");
 		} else {
 			printf("\n [+] WPS pin:    %s", pin);
@@ -859,7 +857,6 @@ usage_err:
 		free(wps->warning);
 	}
 
-	free(pin);
 	free(wps->pke);
 	free(wps->pkr);
 	free(wps->e_hash1);
@@ -971,7 +968,7 @@ uint_fast8_t crack(struct global *g, char *pin) {
 				} else {
 					if (i == 0)
 					{
-						snprintf(pin, WPS_PIN_LEN + 1, "");
+						pin[0] = '\0';
 					} else {
 						snprintf((char *)&mask, 5, "%%0%uu", i);
 						snprintf(pin, WPS_PIN_LEN / 2 + 1, mask, first_half);
@@ -1044,7 +1041,7 @@ uint_fast8_t crack(struct global *g, char *pin) {
 			free(buffer);
 			free(result);
 
-			snprintf(pin, WPS_PIN_LEN + 1, "");
+			pin[0] = '\0';
 			return 0;
 		}
 	}
