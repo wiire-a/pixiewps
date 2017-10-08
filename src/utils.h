@@ -166,7 +166,7 @@ unsigned long get_elapsed_ms(struct timeval *start, struct timeval *end) {
 }
 
 /* Converts an unsigned integer to a char array without termination */
-inline void uint_to_char_array(unsigned int num, unsigned int len, uint8_t *dst) {
+static inline void uint_to_char_array(unsigned int num, unsigned int len, uint8_t *dst) {
 	unsigned int mul = 1;
 	while (len--) {
 		dst[len] = (num % (mul * 10) / mul) + '0';
