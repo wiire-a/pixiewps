@@ -41,7 +41,7 @@ uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
 uint_fast8_t crack(struct global *g, char *pin);
 
-static const char *option_string = "e:r:s:z:a:n:m:b:Sflo:v:Vh?";
+static const char *option_string = "e:r:s:z:a:n:m:b:o:v:SflVh?";
 static const struct option long_options[] = {
 	{ "pke",       required_argument, 0, 'e' },
 	{ "pkr",       required_argument, 0, 'r' },
@@ -51,11 +51,11 @@ static const struct option long_options[] = {
 	{ "e-nonce",   required_argument, 0, 'n' },
 	{ "r-nonce",   required_argument, 0, 'm' },
 	{ "e-bssid",   required_argument, 0, 'b' },
+	{ "output",    required_argument, 0, 'o' },
+	{ "verbosity", required_argument, 0, 'v' },
 	{ "dh-small",  no_argument,       0, 'S' },
 	{ "force",     no_argument,       0, 'f' },
 	{ "length",    no_argument,       0, 'l' },
-	{ "output",    required_argument, 0, 'o' },
-	{ "verbosity", required_argument, 0, 'v' },
 	{ "version",   no_argument,       0, 'V' },
 	{ "help",      no_argument,       0,  0  },
 	{ "mode",      required_argument, 0,  1  },
