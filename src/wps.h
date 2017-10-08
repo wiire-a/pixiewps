@@ -84,7 +84,7 @@ void kdf(const void *key, uint8_t *res) {
 }
 
 /* Pin checksum computing */
-inline uint_fast8_t wps_pin_checksum(uint_fast32_t pin) {
+static inline uint_fast8_t wps_pin_checksum(uint_fast32_t pin) {
 	unsigned int acc = 0;
 	while (pin) {
 		acc += 3 * (pin % 10);
@@ -96,12 +96,12 @@ inline uint_fast8_t wps_pin_checksum(uint_fast32_t pin) {
 }
 
 /* Validity PIN control based on checksum */
-inline uint_fast8_t wps_pin_valid(uint_fast32_t pin) {
+static inline uint_fast8_t wps_pin_valid(uint_fast32_t pin) {
 	return wps_pin_checksum(pin / 10) == (pin % 10);
 }
 
 /* Checks if PKe == 2 */
-inline uint_fast8_t check_small_dh_keys(const uint8_t *data) {
+static inline uint_fast8_t check_small_dh_keys(const uint8_t *data) {
 	uint_fast8_t i = WPS_PKEY_LEN - 2;
 	while (--i) {
 		if (data[i] != 0)
