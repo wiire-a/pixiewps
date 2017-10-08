@@ -342,7 +342,7 @@ usage_err:
 
 	if (is_mode_selected(RTL819x)) { /* Ignore --start and --end otherwise */
 
-		wps->start = t_start.tv_sec;
+		wps->start = t_start.tv_sec + SEC_PER_DAY; /* Extra 1 day */
 		wps->end = t_start.tv_sec - MODE3_DAYS * SEC_PER_DAY;
 
 		/* Attributes --start and --end can be switched start > end or end > start */
@@ -379,7 +379,7 @@ usage_err:
 				}
 			} else {
 				if (wps->bruteforce) {
-					wps->start += SEC_PER_DAY >> 1; /* Extra 12 hour span */
+					wps->start += SEC_PER_DAY; /* Extra 1 day */
 					wps->end = 0;
 				}
 			}
@@ -432,7 +432,7 @@ usage_err:
 							goto memory_err;
 
 						memcpy(wps->authkey, buffer, WPS_AUTHKEY_LEN);
-						
+
 						if (wps->verbosity > 2) {
 							wps->wrapkey = malloc(WPS_KEYWRAPKEY_LEN);
 							if (!wps->wrapkey)
