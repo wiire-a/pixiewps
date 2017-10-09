@@ -106,9 +106,14 @@ static void* crack_thread(void *arg) {
 			DEBUG_PRINT("Seed found");
 		}
 
+		if(seed == 0) break;
+
 		seed--;
+
 		if(seed < j->start - SECS_PER_JOB_BLOCK) {
-			j->start -= SECS_PER_JOB_BLOCK * job_control.jobs;
+			long long tmp = j->start - SECS_PER_JOB_BLOCK * job_control.jobs;
+			if(tmp < 0) break;
+			j->start = tmp;
 			seed = j->start;
 			if (seed < limit) break;
 		}
