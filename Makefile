@@ -12,6 +12,7 @@ define Package/pixiewps
 	SUBMENU:=wireless
 	TITLE:=An offline WPS bruteforce utility
 	URL:=https://github.com/wiire/pixiewps
+	DEPENDS:=+libpthread
 endef
 
 define Package/pixiewps/description
