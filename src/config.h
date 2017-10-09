@@ -21,10 +21,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#if __STDC_VERSION__ < 199901L
-# define inline static
-#endif
-
 #include <stdint.h>
 
 typedef unsigned char uint8_t;
