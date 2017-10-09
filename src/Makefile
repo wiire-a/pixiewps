@@ -3,14 +3,16 @@ CCFLAGS ?= -std=c99 -O3
 TARGET = pixiewps
 CRYPTO = crypto/sha256.c crypto/md.c crypto/md_wrap.c
 SOURCE = $(TARGET).c random_r.c $(CRYPTO)
+LIBS   = -lpthread
+
 PREFIX ?= $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
 
 all:
-	$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
 
 debug:
-	$(CC) $(CLFAGS) $(CCFLAGS) $(CPPFLAGS) -DDEBUG -o $(TARGET) $(SOURCE) $(LDFLAGS)
+	$(CC) $(CLFAGS) $(CCFLAGS) $(CPPFLAGS) -DDEBUG -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
 
 install:
 	rm -f $(BINDIR)/$(TARGET)
