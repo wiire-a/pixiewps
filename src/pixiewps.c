@@ -82,10 +82,10 @@ static struct job_control {
 	volatile uint32_t print_seed;
 } job_control;
 
-static void* crack_thread(void *arg) {
-	struct crack_job * j = arg;
+static void *crack_thread(void *arg) {
+	struct crack_job *j = arg;
 	struct random_data *buf = calloc(1, sizeof(struct random_data));
-	char *rand_statebuf = calloc(1, 128);
+	char *rand_statebuf = calloc(128, 1);
 
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
@@ -94,7 +94,7 @@ static void* crack_thread(void *arg) {
 
 	while (!job_control.print_seed) {
 		srandom_r(seed, buf);
-		unsigned i;
+		unsigned int i;
 		for (i = 0; i < 4; i++) {
 			random_r(buf, &res);
 			if ((uint32_t) res != job_control.randr_enonce[i])
@@ -106,13 +106,13 @@ static void* crack_thread(void *arg) {
 			DEBUG_PRINT("Seed found");
 		}
 
-		if(seed == 0) break;
+		if (seed == 0) break;
 
 		seed--;
 
-		if(seed < j->start - SECS_PER_JOB_BLOCK) {
+		if (seed < j->start - SECS_PER_JOB_BLOCK) {
 			long long tmp = j->start - SECS_PER_JOB_BLOCK * job_control.jobs;
-			if(tmp < 0) break;
+			if (tmp < 0) break;
 			j->start = tmp;
 			seed = j->start;
 			if (seed < limit) break;
@@ -121,8 +121,8 @@ static void* crack_thread(void *arg) {
 	return 0;
 }
 
-static void init_crack_jobs(int jobs, struct global *wps) {
-	job_control.jobs = jobs;
+static void init_crack_jobs(struct global *wps) {
+	job_control.jobs = wps->jobs;
 	job_control.end = wps->end;
 	job_control.print_seed = 0;
 	memset(job_control.randr_enonce, 0, sizeof(job_control.randr_enonce));
@@ -137,28 +137,55 @@ static void init_crack_jobs(int jobs, struct global *wps) {
 		job_control.randr_enonce[i] <<= 8;
 		job_control.randr_enonce[i] |= wps->e_nonce[j++];
 	}
-	job_control.crack_jobs = malloc(jobs * sizeof (struct job_control));
+	job_control.crack_jobs = malloc(wps->jobs * sizeof (struct job_control));
 	time_t curr = wps->start;
-	for(i=0; i<jobs; i++) {
+	for(i = 0; i < wps->jobs; i++) {
 		job_control.crack_jobs[i].start = curr;
 		pthread_create(&job_control.crack_jobs[i].thr, NULL, crack_thread, &job_control.crack_jobs[i]);
 		curr -= SECS_PER_JOB_BLOCK;
 	}
 }
 
-static uint32_t collect_crack_jobs(void) {
+static uint32_t collect_crack_jobs() {
 	int i;
-	for(i=0;i<job_control.jobs;i++)	{
+	for (i = 0; i < job_control.jobs; i++)	{
 		void* ret;
 		pthread_join(job_control.crack_jobs[i].thr, &ret);
 	}
 	return job_control.print_seed;
 }
 
+unsigned int hardware_concurrency() {
+#if defined(PTW32_VERSION) || defined(__hpux)
+	return pthread_num_processors_np();
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+	int count;
+	size_t size = sizeof(count);
+	return sysctlbyname("hw.ncpu", &count, &size, NULL, 0) ? 0 : count;
+#elif defined(_SC_NPROCESSORS_ONLN) /* unistd.h */
+	int const count = sysconf(_SC_NPROCESSORS_ONLN);
+	return (count > 0) ? count : 0;
+#elif defined(__GLIBC__)
+	return get_nprocs();
+#elif defined(_WIN32) || defined(__WIN32__)
+# define static /* Workaround to make it compile on some MinGW installations */
+# include <windows.h>
+# undef static
+# define static static
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo(&sysinfo);
+	return sysinfo.dwNumberOfProcessors;
+#else
+	return 0;
+#endif
+}
+
 int main(int argc, char **argv) {
 
 	struct global *wps;
 	if ((wps = calloc(1, sizeof(struct global)))) {
+		unsigned int cores = hardware_concurrency();
+		wps->jobs = cores == 0 ? 1 : cores;
 		wps->mode_auto = 1;
 		wps->verbosity = 3;
 		wps->error = calloc(256, 1);
@@ -177,13 +204,15 @@ memory_err:
 	int opt = 0;
 	int long_index = 0;
 	uint_fast8_t c = 0;
-	int jobs = 1;
 	opt = getopt_long(argc, argv, option_string, long_options, &long_index);
 	while (opt != -1) {
 		c++;
 		switch (opt) {
 			case 'j':
-				jobs = atoi(optarg);
+				if (get_int(optarg, &wps->jobs) != 0 || wps->jobs < 1) {
+					snprintf(wps->error, 256, "\n [!] Bad number of jobs -- %s\n\n", optarg);
+					goto usage_err;
+				}
 				break;
 			case 'e':
 				wps->pke = malloc(WPS_PKEY_LEN);
@@ -277,7 +306,7 @@ memory_err:
 				if (get_int(optarg, &wps->verbosity) != 0 || wps->verbosity < 1 || wps->verbosity > 3) {
 					snprintf(wps->error, 256, "\n [!] Bad verbosity level -- %s\n\n", optarg);
 					goto usage_err;
-				};
+				}
 				break;
 			case 'V':
 			{
@@ -285,6 +314,7 @@ memory_err:
 					snprintf(wps->error, 256, "\n [!] Bad use of argument --version (-V)!\n\n");
 					goto usage_err;
 				} else {
+					unsigned int cores = hardware_concurrency();
 					struct timeval t_current;
 					gettimeofday(&t_current, 0);
 					time_t r_time;
@@ -293,8 +323,10 @@ memory_err:
 					r_time = t_current.tv_sec;
 					ts = *gmtime(&r_time);
 					strftime(buffer, 30, "%c", &ts);
-					fprintf(stderr, "\n Pixiewps %s\n\n [*] System time: %lu (%s UTC)\n\n",
-						LONG_VERSION, (unsigned long) t_current.tv_sec, buffer);
+					fprintf(stderr, "\n Pixiewps %s\n\n"
+							" [*] System time: %lu (%s UTC)\n"
+							" [*] Number of cores available: %u\n\n",
+							LONG_VERSION, (unsigned long) t_current.tv_sec, buffer, cores == 0 ? 1 : cores);
 					free(wps->error);
 					free(wps);
 					return ARG_ERROR;
@@ -672,8 +704,7 @@ usage_err:
 					if (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
 						!(wps->e_nonce[8] & 0x80) && !(wps->e_nonce[12] & 0x80)) {
 
-						init_crack_jobs(jobs, wps);
-
+						init_crack_jobs(wps);
 
 						#if DEBUG
 						{

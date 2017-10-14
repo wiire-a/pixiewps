@@ -104,6 +104,7 @@ struct global {
 	uint8_t mode_auto;
 	uint8_t bruteforce;
 	uint8_t anylength;
+	unsigned jobs;
 	int verbosity;
 	char *error;
 	char *warning;
@@ -134,7 +135,7 @@ char usage[] =
 	"   -l, --length      : Brute-force entire pin length (experimental)\n"
 	"   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]\n"
 	"   -o, --output      : Write output to file\n"
-	"   -j, --jobs        : Number of parallel threads to use            [1]\n"
+	"   -j, --jobs        : Number of parallel threads to use         [Auto]\n"
 	"\n"
 	"   -h                : Display this usage screen\n"
 	"   --help            : Verbose help and more usage examples\n"
