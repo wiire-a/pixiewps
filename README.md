@@ -68,14 +68,15 @@ Optional Arguments:
   -l, --length      : Brute-force entire pin length (experimental)
   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]
   -o, --output      : Write output to file
+  -j, --jobs        : Number of parallel threads to use         [Auto]
 
   -h                : Display this usage screen
   --help            : Verbose help and more usage examples
   -V, --version     : Display version
 
   --mode N[,... N]  : Mode selection, comma separated           [Auto]
-  --start [mm/]yyyy : Starting date (only mode 3)       [Current time]
-  --end   [mm/]yyyy : Ending date   (only mode 3)            [-3 days]
+  --start [mm/]yyyy : Starting date (only mode 3)             [+1 day]
+  --end   [mm/]yyyy : Ending date   (only mode 3)             [-1 day]
 ```
 
 # Usage example
