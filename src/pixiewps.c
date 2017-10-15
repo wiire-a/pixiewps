@@ -19,6 +19,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -26,6 +28,7 @@
 #include <string.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <limits.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -121,6 +124,10 @@ static void *crack_thread(void *arg) {
 	return 0;
 }
 
+static size_t getminstacksize(size_t minimum) {
+	return (minimum < PTHREAD_STACK_MIN) ? PTHREAD_STACK_MIN : minimum;
+}
+
 static void init_crack_jobs(struct global *wps) {
 	job_control.jobs = wps->jobs;
 	job_control.end = wps->end;
@@ -138,10 +145,15 @@ static void init_crack_jobs(struct global *wps) {
 		job_control.randr_enonce[i] |= wps->e_nonce[j++];
 	}
 	job_control.crack_jobs = malloc(wps->jobs * sizeof (struct job_control));
+	size_t stacksize = getminstacksize(64*1024);
 	time_t curr = wps->start;
 	for(i = 0; i < wps->jobs; i++) {
 		job_control.crack_jobs[i].start = curr;
-		pthread_create(&job_control.crack_jobs[i].thr, NULL, crack_thread, &job_control.crack_jobs[i]);
+		pthread_attr_t attr;
+		int attr_ok = pthread_attr_init(&attr) == 0 ;
+		if(attr_ok) pthread_attr_setstacksize(&attr, stacksize);
+		pthread_create(&job_control.crack_jobs[i].thr, &attr, crack_thread, &job_control.crack_jobs[i]);
+		if(attr_ok) pthread_attr_destroy(&attr);
 		curr -= SECS_PER_JOB_BLOCK;
 	}
 }
