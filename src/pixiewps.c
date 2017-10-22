@@ -132,9 +132,24 @@ static void *crack_thread(void *arg) {
 	return 0;
 }
 
+#ifndef PTHREAD_STACK_MIN
+static void setup_thread(int i) {
+	pthread_create(&job_control.crack_jobs[i].thr, 0, crack_thread, &job_control.crack_jobs[i]);
+}
+#else
 static size_t getminstacksize(size_t minimum) {
 	return (minimum < PTHREAD_STACK_MIN) ? PTHREAD_STACK_MIN : minimum;
 }
+
+static void setup_thread(int i) {
+	size_t stacksize = getminstacksize(64*1024);
+	pthread_attr_t attr;
+	int attr_ok = pthread_attr_init(&attr) == 0 ;
+	if(attr_ok) pthread_attr_setstacksize(&attr, stacksize);
+	pthread_create(&job_control.crack_jobs[i].thr, &attr, crack_thread, &job_control.crack_jobs[i]);
+	if(attr_ok) pthread_attr_destroy(&attr);
+}
+#endif
 
 static void init_crack_jobs(struct global *wps) {
 	job_control.jobs = wps->jobs;
@@ -153,15 +168,10 @@ static void init_crack_jobs(struct global *wps) {
 		job_control.randr_enonce[i] |= wps->e_nonce[j++];
 	}
 	job_control.crack_jobs = malloc(wps->jobs * sizeof (struct job_control));
-	size_t stacksize = getminstacksize(64*1024);
 	time_t curr = wps->start;
 	for(i = 0; i < wps->jobs; i++) {
 		job_control.crack_jobs[i].start = curr;
-		pthread_attr_t attr;
-		int attr_ok = pthread_attr_init(&attr) == 0 ;
-		if(attr_ok) pthread_attr_setstacksize(&attr, stacksize);
-		pthread_create(&job_control.crack_jobs[i].thr, &attr, crack_thread, &job_control.crack_jobs[i]);
-		if(attr_ok) pthread_attr_destroy(&attr);
+		setup_thread(i);
 		curr -= SECS_PER_JOB_BLOCK;
 	}
 }
