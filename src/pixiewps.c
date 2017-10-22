@@ -30,6 +30,9 @@
 #include <pthread.h>
 #include <limits.h>
 #include <stdarg.h> /* libtommath.c */
+#if defined(_WIN32) || defined(__WIN32__)
+#include <windows.h>
+#endif
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -199,10 +202,6 @@ unsigned int hardware_concurrency() {
 #elif defined(__GLIBC__)
 	return get_nprocs();
 #elif defined(_WIN32) || defined(__WIN32__)
-# define static /* Workaround to make it compile on some MinGW installations */
-# include <windows.h>
-# undef static
-# define static static
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
 	return sysinfo.dwNumberOfProcessors;
