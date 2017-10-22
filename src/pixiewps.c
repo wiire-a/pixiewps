@@ -121,6 +121,10 @@ static void *crack_thread(void *arg) {
 			if (seed < limit) break;
 		}
 	}
+
+	free(buf);
+	free(rand_statebuf);
+
 	return 0;
 }
 
@@ -164,6 +168,7 @@ static uint32_t collect_crack_jobs() {
 		void* ret;
 		pthread_join(job_control.crack_jobs[i].thr, &ret);
 	}
+	free(job_control.crack_jobs);
 	return job_control.print_seed;
 }
 
