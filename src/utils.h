@@ -49,17 +49,67 @@ unsigned int hex_string_to_byte_array(char *in, uint8_t *out, const unsigned int
 				else
 					return 1;
 			in++;
-		};
+		}
 		*out++ = o;
 		if (len == b_len) {
 			if (*in == ':' || *in == '-' || *in == ' ' || *in == 0)
 				in++;
-			else 
+			else
 				return 1;
 		}
 	}
 	return 0;
-};
+}
+
+/* Converts an hex string to a byte array */
+unsigned int hex_string_to_byte_array_max(char *in, uint8_t *out, const unsigned int max_len, unsigned int *m_len) {
+	uint_fast8_t o, separator = 0;
+	unsigned int count = 0;
+	unsigned int len = strlen(in);
+
+	if (len > 2)
+		if (in[2] == ':' || in[2] == '-' || in[2] == ' ')
+			separator = 1;
+	if (separator)
+		if ((len + 1) / 3 > max_len)
+			return 1;
+	else
+		if (len / 2 > max_len)
+			return 1;
+
+	for (unsigned int i = 0; i < max_len; i++) {
+		o = 0;
+		for (uint_fast8_t j = 0; j < 2; j++) {
+			o <<= 4;
+			if (*in >= 'A' && *in <= 'F')
+				*in += 'a'-'A';
+			if (*in >= '0' && *in <= '9')
+				o += *in - '0';
+			else
+				if (*in >= 'a' && *in <= 'f')
+					o += *in - 'a' + 10;
+				else
+					return 1;
+			in++;
+		}
+		*out++ = o;
+		count++;
+
+		if (*in == 0)
+			goto end;
+
+		if (separator) {
+			if (*in == ':' || *in == '-' || *in == ' ')
+				in++;
+			else
+				return 1;
+		}
+	}
+
+end:
+	*m_len = count;
+	return 0;
+}
 
 /* Converts a string into an integer */
 int get_int(char *in, int *out) {
@@ -70,10 +120,10 @@ int get_int(char *in, int *out) {
 		else
 			return 1;
 		in++;
-	};
+	}
 	*out = o;
 	return 0;
-};
+}
 
 /* Custom timegm function made by Eric S Raymond */
 time_t c_timegm(register struct tm *t) {
@@ -198,6 +248,24 @@ uint32_t h32_to_be(const uint32_t num) {
 		b2 = (tmp & 0x00ff0000) >> 8;
 		b3 = (tmp & 0xff000000) >> 24;
 		res = b0 | b1 | b2 | b3;
+	} else {         /* BE */
+		res = num;
+	}
+	return res;
+}
+
+/* Converts a 16 Big Endian bit number to the host representation */
+uint16_t be16_to_h(const uint16_t num) {
+	uint16_t tmp = num;
+	uint16_t res;
+	uint16_t b0, b1;
+	unsigned int i = 1;
+	char *p = (char *) &i;
+
+	if (p[0] == 1) { /* LE */
+		b0 = (tmp & 0x000000ff) << 8;
+		b1 = (tmp & 0x0000ff00) >> 8;
+		res = b0 | b1;
 	} else {         /* BE */
 		res = num;
 	}

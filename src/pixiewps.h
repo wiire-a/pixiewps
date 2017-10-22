@@ -40,6 +40,7 @@
 #define PIN_ERROR             1
 #define MEM_ERROR             2
 #define ARG_ERROR             3
+#define UNS_ERROR             4
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +60,9 @@
 uint_fast8_t p_mode[MODE_LEN] = { 0 };
 const char *p_mode_name[MODE_LEN + 1] = { "", "RT/MT", "eCos simple", "RTL819x", "eCos simplest", "eCos Knuth" };
 
+/* Also called 'porting' OpenSSL */
+#define SET_RTL_PRIV_KEY(x) memset(x, 0x55, 192)
+
 const uint8_t wps_rtl_pke[] = {
 	0xD0,0x14,0x1B,0x15, 0x65,0x6E,0x96,0xB8, 0x5F,0xCE,0xAD,0x2E, 0x8E,0x76,0x33,0x0D,
 	0x2B,0x1A,0xC1,0x57, 0x6B,0xB0,0x26,0xE7, 0xA3,0x28,0xC0,0xE1, 0xBA,0xF8,0xCF,0x91,
@@ -74,6 +78,7 @@ const uint8_t wps_rtl_pke[] = {
 	0x66,0xA5,0xA4,0x90, 0x47,0x2C,0xEB,0xA9, 0xE3,0xB4,0x22,0x4F, 0x3D,0x89,0xFB,0x2B
 };
 
+/* Unused */
 const uint8_t rtl_rnd_seed[] = {
 	0x52,0x65,0x61,0x6c, 0x74,0x65,0x6b,0x20, 0x57,0x69,0x46,0x69, 0x20,0x53,0x69,0x6d,
 	0x70,0x6c,0x65,0x2d, 0x43,0x6f,0x6e,0x66, 0x69,0x67,0x20,0x44, 0x61,0x65,0x6d,0x6f,
@@ -84,6 +89,7 @@ const uint8_t rtl_rnd_seed[] = {
 struct global {
 	uint8_t *pke;
 	uint8_t *pkr;
+	uint8_t *e_key;
 	uint8_t *e_hash1;
 	uint8_t *e_hash2;
 	uint8_t *authkey;
@@ -98,6 +104,8 @@ struct global {
 	uint8_t *e_s1;
 	uint8_t *e_s2;
 	uint8_t *e_bssid;
+	uint8_t *m7_encr;
+	unsigned int m7_encr_len;
 	time_t start;
 	time_t end;
 	uint8_t small_dh_keys;
@@ -117,7 +125,7 @@ char usage[] =
 	"\n"
 	" Usage: %s <arguments>\n"
 	"\n"
-	" Required Arguments:\n"
+	" Required arguments:\n"
 	"\n"
 	"   -e, --pke         : Enrollee public key\n"
 	"   -r, --pkr         : Registrar public key\n"
@@ -126,7 +134,7 @@ char usage[] =
 	"   -a, --authkey     : Authentication session key\n"
 	"   -n, --e-nonce     : Enrollee nonce\n"
 	"\n"
-	" Optional Arguments:\n"
+	" Optional arguments:\n"
 	"\n"
 	"   -m, --r-nonce     : Registrar nonce\n"
 	"   -b, --e-bssid     : Enrollee BSSID\n"
@@ -144,6 +152,10 @@ char usage[] =
 	"   --mode N[,... N]  : Mode selection, comma separated           [Auto]\n"
 	"   --start [mm/]yyyy : Starting date (only mode 3)             [+1 day]\n"
 	"   --end   [mm/]yyyy : Ending date   (only mode 3)             [-1 day]\n"
+	"\n"
+	" Miscellaneous arguments:\n"
+	"\n"
+	"   -7, --m7-enc      : Recover encrypted settings from M7 (only mode 3)\n"
 	"\n"
 	" Example:\n"
 	"\n"
@@ -217,6 +229,14 @@ char v_usage[] =
 	"    Starting and ending dates for mode 3. They are interchangeable. "
 	"If only one is specified, the machine current time will be used for the other. "
 	"The earliest possible date is 01/1970 corresponding to 0 (Epoch time).\n"
+	"\n"
+	" -7, --m7-enc      : Recover encrypted settings from M7 (only mode 3)\n"
+	"\n"
+	"    Recover encrypted settings. It's the attribute in M7 that contains the current "
+	"configuration of the Access Point (enrollee). This option WORKS (currently) only with mode 3 "
+	"with a limited number of models and requires --pke, --pkr, --e-nonce, --r-nonce and --e-bssid\n"
+	"\n"
+	"  [?] pixiewps -7 <enc> -e <pke> -r <pkr> -n <e-nonce> -m <r-nonce> -b <e-bssid> --mode 3\n"
 	"\n";
 
 /* One digit comma separated number parsing */

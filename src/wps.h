@@ -33,12 +33,50 @@
 #define WPS_PSK_LEN          16
 #define WPS_BSSID_LEN         6
 
+#define ENC_SETTINGS_LEN    256 /* There is not a max length */
+#define MAX_PSK_LEN          64
+
 #include <stdlib.h>
 #include <string.h>
 
 #include "pixiewps.h"
 #include "config.h"
 #include "utils.h"
+
+struct ie_vtag {
+	uint16_t id;
+#define WPS_TAG_E_SNONCE_2   "\x10\x17"
+#define WPS_TAG_SSID         "\x10\x45"
+#define WPS_TAG_BSSID        "\x10\x20"
+#define WPS_TAG_AUTH_TYPE    "\x10\x03"
+#define WPS_TAG_ENC_TYPE     "\x10\x0F"
+#define WPS_TAG_NET_KEY      "\x10\x27"
+#define WPS_TAG_NET_KEY_IDX  "\x10\x28"
+#define WPS_TAG_KEYWRAP_AUTH "\x10\x1E"
+	uint16_t len;
+#define WPS_TAG_AUTH_TYPE_LEN    2
+#define WPS_TAG_ENC_TYPE_LEN     2
+#define WPS_TAG_NET_KEY_IDX_LEN  1
+#define WPS_TAG_KEYWRAP_AUTH_LEN 8
+	uint8_t data[];
+};
+typedef struct ie_vtag vtag_t;
+#define	VTAG_SIZE (sizeof(vtag_t))
+
+vtag_t *find_vtag(void *vtagp, int vtagl, uint8_t *vid, int vlen) {
+	vtag_t *vtag = (vtag_t*)vtagp;
+	while (0 < vtagl) {
+		if (vid && memcmp(vid, &vtag->id, 2) != 0)
+			goto next_vtag;
+		if (!vlen || be16_to_h(vtag->len) == vlen);
+		return vtag;
+
+next_vtag:
+		vtagl -= be16_to_h(vtag->len) + VTAG_SIZE;
+		vtag = (vtag_t*)((uint8_t*) vtag + be16_to_h(vtag->len) + VTAG_SIZE);
+	}
+	return NULL;
+}
 
 /* Diffie-Hellman group */
 static const uint8_t dh_group5_generator[1] = { 0x02 };
@@ -81,6 +119,46 @@ void kdf(const void *key, uint8_t *res) {
 		j += WPS_HASH_LEN;
 	}
 	free(buffer);
+}
+
+/* Decrypt encrypted settings in M7-M8 */
+uint8_t *decrypt_encr_settings(uint8_t *keywrapkey, const uint8_t *encr, size_t encr_len) {
+	uint8_t *decrypted;
+	const size_t block_size = 16;
+	size_t i;
+	uint8_t pad;
+	const uint8_t *pos;
+	size_t n_encr_len;
+
+	/* AES-128-CBC */
+	if (encr == NULL || encr_len < 2 * block_size || encr_len % block_size)
+		return NULL;
+
+	decrypted = malloc(encr_len - block_size);
+	if (decrypted == NULL)
+		return NULL;
+
+	memcpy(decrypted, encr + block_size, encr_len - block_size);
+	n_encr_len = encr_len - block_size;
+	if (aes_128_cbc_decrypt(keywrapkey, encr, decrypted, n_encr_len)) {
+		free(decrypted);
+		return NULL;
+	}
+
+	pos = decrypted + n_encr_len - 1;
+	pad = *pos;
+	if (pad > n_encr_len) {
+		free(decrypted);
+		return NULL;
+	}
+	for (i = 0; i < pad; i++) {
+		if (*pos-- != pad) {
+			free(decrypted);
+			return NULL;
+		}
+	}
+
+	return decrypted;
 }
 
 /* Pin checksum computing */

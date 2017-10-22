@@ -25,11 +25,20 @@
 
 typedef unsigned char uint8_t;
 
-#include "crypto/md_internal.h"
-#include "crypto/sha256.h"
+#include "mbedtls/md_internal.h"
+#include "mbedtls/sha256.h"
 
 #define sha256(i, l, d) mbedtls_sha256(i, l, d, 0)
 #define hmac_sha256(k, l, i, n, o) \
 	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), k, l, i, n, o)
+
+#define u8  uint8_t
+#define u16	uint16_t
+#define u32	uint32_t
+#define u64	uint64_t
+#define os_memcpy memcpy
+#define os_malloc malloc
+#define os_memset memset
+#define os_free   free
 
 #endif /* CONFIG_H */

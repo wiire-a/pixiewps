@@ -50,7 +50,7 @@ sudo make install
 ```
 Usage: pixiewps <arguments>
 
-Required Arguments:
+Required arguments:
 
   -e, --pke         : Enrollee public key
   -r, --pkr         : Registrar public key
@@ -59,7 +59,7 @@ Required Arguments:
   -a, --authkey     : Authentication session key
   -n, --e-nonce     : Enrollee nonce
 
-Optional Arguments:
+Optional arguments:
 
   -m, --r-nonce     : Registrar nonce
   -b, --e-bssid     : Enrollee BSSID
@@ -77,6 +77,10 @@ Optional Arguments:
   --mode N[,... N]  : Mode selection, comma separated           [Auto]
   --start [mm/]yyyy : Starting date (only mode 3)             [+1 day]
   --end   [mm/]yyyy : Ending date   (only mode 3)             [-1 day]
+
+Miscellaneous arguments:
+
+  -7, --m7-enc      : Recover encrypted settings from M7 (only mode 3)
 ```
 
 # Usage example
