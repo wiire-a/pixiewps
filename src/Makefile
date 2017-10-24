@@ -1,4 +1,4 @@
-CCFLAGS ?= -std=c99 -O3
+CFLAGS ?= -std=c99 -O3
 
 TARGET = pixiewps
 CRYPTO = mbedtls/sha256.c mbedtls/md.c mbedtls/md_wrap.c
@@ -9,10 +9,10 @@ PREFIX ?= $(DESTDIR)/usr
 BINDIR = $(PREFIX)/bin
 
 all:
-	$(CC) $(CFLAGS) $(CCFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
 
 debug:
-	$(CC) $(CLFAGS) $(CCFLAGS) $(CPPFLAGS) -DDEBUG -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
+	$(CC) $(CLFAGS) $(CPPFLAGS) -DDEBUG -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
 
 install:
 	rm -f $(BINDIR)/$(TARGET)
