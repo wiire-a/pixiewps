@@ -58,7 +58,7 @@
 #endif
 
 uint_fast8_t p_mode[MODE_LEN] = { 0 };
-const char *p_mode_name[MODE_LEN + 1] = { "", "RT/MT", "eCos simple", "RTL819x", "eCos simplest", "eCos Knuth" };
+const char *p_mode_name[MODE_LEN + 1] = { "", "RT/MT/CL", "eCos simple", "RTL819x", "eCos simplest", "eCos Knuth" };
 
 /* Also called 'porting' OpenSSL */
 #define SET_RTL_PRIV_KEY(x) memset(x, 0x55, 192)
