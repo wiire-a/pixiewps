@@ -2,7 +2,7 @@ CFLAGS ?= -std=c99 -O3
 
 TARGET = pixiewps
 CRYPTO = mbedtls/sha256.c mbedtls/md.c mbedtls/md_wrap.c
-SOURCE = $(TARGET).c random_r.c $(CRYPTO)
+SOURCE = $(TARGET).c $(CRYPTO)
 LIBS   = -lpthread
 
 PREFIX ?= /usr

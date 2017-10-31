@@ -43,7 +43,7 @@
 #include "crypto/aes-cbc.c"
 #include "utils.h"
 #include "wps.h"
-#include "random_r.h"
+#include "random_r.c"
 #include "version.h"
 
 uint32_t ecos_rand_simplest(uint32_t *seed);
@@ -94,19 +94,19 @@ static struct job_control {
 
 static void *crack_thread(void *arg) {
 	struct crack_job *j = arg;
-	struct random_data *buf = calloc(1, sizeof(struct random_data));
+	struct m_random_data *buf = calloc(1, sizeof(struct m_random_data));
 	char *rand_statebuf = calloc(128, 1);
 
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
-	initstate_r(seed, rand_statebuf, 128, buf);
+	m_initstate_r(seed, rand_statebuf, 128, buf);
 	int32_t res = 0;
 
 	while (!job_control.nonce_seed) {
-		srandom_r(seed, buf);
+		m_srandom_r(seed, buf);
 		unsigned int i;
 		for (i = 0; i < 4; i++) {
-			random_r(buf, &res);
+			m_random_r(buf, &res);
 			if ((uint32_t) res != job_control.randr_enonce[i])
 				break;
 		}
@@ -868,9 +868,9 @@ usage_err:
 
 						nonce_seed = collect_crack_jobs();
 
-						struct random_data *buf = calloc(1, sizeof(struct random_data));
+						struct m_random_data *buf = calloc(1, sizeof(struct m_random_data));
 						char *rand_statebuf = calloc(1, 128);
-						initstate_r(nonce_seed, rand_statebuf, 128, buf);
+						m_initstate_r(nonce_seed, rand_statebuf, 128, buf);
 
 						if (nonce_seed) { /* Seed found */
 							int32_t res;
@@ -881,9 +881,9 @@ usage_err:
 
 							do {
 								i++;
-								srandom_r(nonce_seed + i, buf);
+								m_srandom_r(nonce_seed + i, buf);
 								for (uint_fast8_t j = 0; j < 4; j++) {
-									random_r(buf, &res);
+									m_random_r(buf, &res);
 									uint32_t be = h32_to_be(res);
 									memcpy(&(wps->e_s1[4 * j]), &be, 4);
 									memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN);        /* E-S1 = E-S2 != E-Nonce */
@@ -934,9 +934,9 @@ usage_err:
 								i = 0;
 								do {
 									i++;
-									srandom_r(nonce_seed - i, buf);
+									m_srandom_r(nonce_seed - i, buf);
 									for (uint_fast8_t j = 0; j < 4; j++) {
-										random_r(buf, &res);
+										m_random_r(buf, &res);
 										uint32_t be = h32_to_be(res);
 										memcpy(&(wps->e_s1[4 * j]), &be, 4);
 										memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN);        /* E-S1 = E-S2 != E-Nonce */

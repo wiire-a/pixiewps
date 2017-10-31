@@ -37,7 +37,17 @@
 # endif
 #endif
 
-#include "random_r.h"
+#include <stdint.h>
+
+struct m_random_data {
+    int32_t *fptr;    /* Front pointer */
+    int32_t *rptr;    /* Rear pointer */
+    int32_t *state;   /* Array of state values */
+    int rand_type;    /* Type of random number generator */
+    int rand_deg;     /* Degree of random number generator */
+    int rand_sep;     /* Distance between front and rear */
+    int32_t *end_ptr; /* Pointer behind state table */
+};
 
 /* An improved random number generation package.  In addition to the standard
    rand()/srand() like interface, this package also has a special state info
@@ -116,7 +126,7 @@
 
 #define	MAX_TYPES	5	/* Max number of types above.  */
 
-struct random_poly_info
+struct m_random_poly_info
 {
     /* smallint seps[MAX_TYPES]; */
     /* smallint degrees[MAX_TYPES]; */
@@ -124,7 +134,7 @@ struct random_poly_info
     unsigned char degrees[MAX_TYPES];
 };
 
-static const struct random_poly_info random_poly_info =
+static const struct m_random_poly_info random_poly_info =
 {
     { SEP_0, SEP_1, SEP_2, SEP_3, SEP_4 },
     { DEG_0, DEG_1, DEG_2, DEG_3, DEG_4 }
@@ -142,7 +152,7 @@ static const struct random_poly_info random_poly_info =
    rear pointers can't wrap on the same call by not testing the rear
    pointer if the front one has wrapped.  Returns a 31-bit random number.  */
 
-void random_r(struct random_data *buf, int32_t *result)
+void m_random_r(struct m_random_data *buf, int32_t *result)
 {
     int32_t *state;
 
@@ -200,7 +210,7 @@ void random_r(struct random_data *buf, int32_t *result)
    information a given number of times to get rid of any initial dependencies
    introduced by the L.C.R.N.G.  Note that the initialization of randtbl[]
    for default usage relies on values produced by this routine.  */
-int srandom_r (unsigned int seed, struct random_data *buf)
+int m_srandom_r (unsigned int seed, struct m_random_data *buf)
 {
     int type;
     int32_t *state;
@@ -245,7 +255,7 @@ int srandom_r (unsigned int seed, struct random_data *buf)
     while (--kc >= 0)
     {
 	int32_t discard;
-	(void) random_r (buf, &discard);
+	(void) m_random_r (buf, &discard);
     }
 
 done:
@@ -268,7 +278,7 @@ fail:
    Note: The first thing we do is save the current state, if any, just like
    setstate so that it doesn't matter when initstate is called.
    Returns a pointer to the old state.  */
-int initstate_r (unsigned int seed, char *arg_state, size_t n, struct random_data *buf)
+int m_initstate_r (unsigned int seed, char *arg_state, size_t n, struct m_random_data *buf)
 {
     int type;
     int degree;
@@ -304,7 +314,7 @@ int initstate_r (unsigned int seed, char *arg_state, size_t n, struct random_dat
 
     buf->state = state;
 
-    srandom_r (seed, buf);
+    m_srandom_r (seed, buf);
 
     state[-1] = TYPE_0;
     if (type != TYPE_0)
@@ -327,7 +337,7 @@ fail:
    to the order in which things are done, it is OK to call setstate with the
    same state as the current state
    Returns a pointer to the old state information.  */
-int setstate_r (char *arg_state, struct random_data *buf)
+int m_setstate_r (char *arg_state, struct m_random_data *buf)
 {
     int32_t *new_state = 1 + (int32_t *) arg_state;
     int type;
