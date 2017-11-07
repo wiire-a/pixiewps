@@ -104,7 +104,9 @@ struct global {
 	uint8_t *e_s1;
 	uint8_t *e_s2;
 	uint8_t *e_bssid;
+	uint8_t *m5_encr;
 	uint8_t *m7_encr;
+	unsigned int m5_encr_len;
 	unsigned int m7_encr_len;
 	time_t start;
 	time_t end;
@@ -156,6 +158,7 @@ char usage[] =
 	" Miscellaneous arguments:\n"
 	"\n"
 	"   -7, --m7-enc      : Recover encrypted settings from M7 (only mode 3)\n"
+	"   -5, --m5-enc      : Recover secret nonce from M5       (only mode 3)\n"
 	"\n"
 	" Example:\n"
 	"\n"

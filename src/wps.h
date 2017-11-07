@@ -45,6 +45,7 @@
 
 struct ie_vtag {
 	uint16_t id;
+#define WPS_TAG_E_SNONCE_1   "\x10\x16"
 #define WPS_TAG_E_SNONCE_2   "\x10\x17"
 #define WPS_TAG_SSID         "\x10\x45"
 #define WPS_TAG_BSSID        "\x10\x20"

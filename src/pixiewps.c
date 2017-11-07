@@ -51,7 +51,7 @@ uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
 uint_fast8_t crack(struct global *g, char *pin);
 
-static const char *option_string = "e:r:s:z:a:n:m:b:o:v:j:7:SflVh?";
+static const char *option_string = "e:r:s:z:a:n:m:b:o:v:j:5:7:SflVh?";
 static const struct option long_options[] = {
 	{ "pke",       required_argument, 0, 'e' },
 	{ "pkr",       required_argument, 0, 'r' },
@@ -72,6 +72,7 @@ static const struct option long_options[] = {
 	{ "mode",      required_argument, 0,  1  },
 	{ "start",     required_argument, 0,  2  },
 	{ "end",       required_argument, 0,  3  },
+	{ "m5-enc",    required_argument, 0, '5' },
 	{ "m7-enc",    required_argument, 0, '7' },
 	{  0,          no_argument,       0, 'h' },
 	{  0,          0,                 0,  0  }
@@ -407,6 +408,15 @@ memory_err:
 					break;
 				}
 				goto usage_err;
+			case '5':
+				wps->m5_encr = malloc(ENC_SETTINGS_LEN);
+				if (!wps->m5_encr)
+					goto memory_err;
+				if (hex_string_to_byte_array_max(optarg, wps->m5_encr, ENC_SETTINGS_LEN, &wps->m5_encr_len)) {
+					snprintf(wps->error, 256, "\n [!] Bad m5 encrypted settings -- %s\n\n", optarg);
+					goto usage_err;
+				}
+				break;
 			case '7':
 				wps->m7_encr = malloc(ENC_SETTINGS_LEN);
 				if (!wps->m7_encr)
@@ -495,12 +505,23 @@ usage_err:
 		memcpy(wps->emsk, buffer + WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN, WPS_EMSK_LEN);
 
 		/* Decrypt encrypted settings */
-		uint8_t *decrypted = decrypt_encr_settings(wps->wrapkey, wps->m7_encr, wps->m7_encr_len);
+		uint8_t *decrypted7 = decrypt_encr_settings(wps->wrapkey, wps->m7_encr, wps->m7_encr_len);
 		free(wps->m7_encr);
-		if (!decrypted) {
+		if (!decrypted7) {
 			printf("\n Pixiewps %s\n", SHORT_VERSION);
 			printf("\n [x] Unexpected error while decrypting (--m7-enc)!\n\n");
 			return UNS_ERROR;
+		}
+
+		uint8_t *decrypted5 = NULL;
+		if (wps->m5_encr) {
+			decrypted5 = decrypt_encr_settings(wps->wrapkey, wps->m5_encr, wps->m5_encr_len);
+			free(wps->m5_encr);
+			if (!decrypted5) {
+				printf("\n Pixiewps %s\n", SHORT_VERSION);
+				printf("\n [x] Unexpected error while decrypting (--m5-enc)!\n\n");
+				return UNS_ERROR;
+			}
 		}
 
 		printf("\n Pixiewps %s\n", SHORT_VERSION);
@@ -514,18 +535,24 @@ usage_err:
 			printf("\n [*] AuthKey:               "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
 			printf("\n [*] EMSK:                  "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
 			printf("\n [*] KeyWrapKey:            "); byte_array_print(wps->wrapkey, WPS_KEYWRAPKEY_LEN);
-			if (vtag = find_vtag(decrypted, wps->m7_encr_len - 16, WPS_TAG_KEYWRAP_AUTH, WPS_TAG_KEYWRAP_AUTH_LEN)) {
+			if (vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_KEYWRAP_AUTH, WPS_TAG_KEYWRAP_AUTH_LEN)) {
 				memcpy(buffer, vtag->data, WPS_TAG_KEYWRAP_AUTH_LEN);
 				printf("\n [*] KeyWrap Authenticator: "); byte_array_print(buffer, WPS_TAG_KEYWRAP_AUTH_LEN);
 			}
 		}
-		if (vtag = find_vtag(decrypted, wps->m7_encr_len - 16, WPS_TAG_SSID, 0)) {
+		if (vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN)) {
+			printf("\n [*] ES-1:                  "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+		}
+		if (vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_E_SNONCE_2, WPS_NONCE_LEN)) {
+			printf("\n [*] ES-2:                  "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+		}
+		if (vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_SSID, 0)) {
 			int tag_size = be16_to_h(vtag->len);
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
 			printf("\n [*] SSID:                  %s", buffer);
 		}
-		if (vtag = find_vtag(decrypted, wps->m7_encr_len - 16, WPS_TAG_NET_KEY, 0)) {
+		if (vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_NET_KEY, 0)) {
 			int tag_size = be16_to_h(vtag->len);
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
@@ -534,7 +561,10 @@ usage_err:
 			printf("\n [-] PSK not found!\n\n");
 		}
 
-		free(decrypted);
+		if (decrypted5)
+			free(decrypted5);
+
+		free(decrypted7);
 		free(buffer);
 		free(wps->pke);
 		free(wps->pkr);
