@@ -95,19 +95,19 @@ static struct job_control {
 
 static void *crack_thread(void *arg) {
 	struct crack_job *j = arg;
-	struct m_random_data *buf = calloc(1, sizeof(struct m_random_data));
-	char *rand_statebuf = calloc(128, 1);
+	struct m_random_data buf = {0};
+	char rand_statebuf[128] = {0};
 
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
-	m_initstate_r(seed, rand_statebuf, 128, buf);
+	m_initstate_r(seed, rand_statebuf, 128, &buf);
 	int32_t res = 0;
 
 	while (!job_control.nonce_seed) {
-		m_srandom_r(seed, buf);
+		m_srandom_r(seed, &buf);
 		unsigned int i;
 		for (i = 0; i < 4; i++) {
-			m_random_r(buf, &res);
+			m_random_r(&buf, &res);
 			if ((uint32_t) res != job_control.randr_enonce[i])
 				break;
 		}
@@ -129,9 +129,6 @@ static void *crack_thread(void *arg) {
 			if (seed < limit) break;
 		}
 	}
-
-	free(buf);
-	free(rand_statebuf);
 
 	return 0;
 }
