@@ -100,7 +100,7 @@ static void *crack_thread(void *arg) {
 
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
-	m_initstate_r(seed, rand_statebuf, 128, &buf);
+	m_initstate_r(seed, rand_statebuf, &buf);
 	int32_t res = 0;
 
 	while (!job_control.nonce_seed) {
@@ -897,7 +897,7 @@ usage_err:
 
 						struct m_random_data *buf = calloc(1, sizeof(struct m_random_data));
 						char *rand_statebuf = calloc(1, 128);
-						m_initstate_r(nonce_seed, rand_statebuf, 128, buf);
+						m_initstate_r(nonce_seed, rand_statebuf, buf);
 
 						if (nonce_seed) { /* Seed found */
 							int32_t res;
