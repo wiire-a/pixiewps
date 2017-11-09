@@ -26,20 +26,6 @@
  * This file is part of pixiewps and was modified
  */
 
-#include <limits.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__))
-# include <sys/param.h>
-# if defined(BSD) || defined(__APPLE__) && defined(__MACH__)
-	/* Nothing to include */
-#else
-# include <features.h>
-# endif
-#endif
-
 #include <stdint.h>
 
 struct m_random_data {
@@ -127,7 +113,7 @@ void m_srandom_r(unsigned int seed, struct m_random_data *buf)
 	kc = DEG_3 * 10;
 	while (--kc >= 0) {
 		int32_t discard;
-		(void)m_random_r(buf, &discard);
+		m_random_r(buf, &discard);
 	}
 }
 
