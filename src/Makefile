@@ -15,7 +15,7 @@ debug:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -DDEBUG -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
 
 install:
-	install -d $(BINDIR)
+	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)
 
 uninstall:
