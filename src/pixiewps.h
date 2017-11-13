@@ -114,7 +114,7 @@ struct global {
 	uint8_t mode_auto;
 	uint8_t bruteforce;
 	uint8_t anylength;
-	unsigned jobs;
+	int jobs;
 	int verbosity;
 	char *error;
 	char *warning;
@@ -263,7 +263,7 @@ static inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint8
 
 /* Checks if passed mode is selected */
 static inline uint_fast8_t is_mode_selected(const uint_fast8_t mode) {
-	for (uint_fast8_t i = 0; p_mode[i] != NONE && i < MODE_LEN; i++) {
+	for (uint_fast8_t i = 0; i < MODE_LEN && p_mode[i] != NONE; i++) {
 		if (p_mode[i] == mode)
 			return 1;
 	}

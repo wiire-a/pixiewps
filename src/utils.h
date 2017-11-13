@@ -29,15 +29,14 @@
 
 /* Converts an hex string to a byte array */
 unsigned int hex_string_to_byte_array(char *in, uint8_t *out, const unsigned int n_len) {
-	uint_fast8_t o;
 	unsigned int len = strlen(in);
 	unsigned int b_len = n_len * 2 + n_len - 1;
 
 	if (len != n_len * 2 && len != b_len)
 		return 1;
 	for (unsigned int i = 0; i < n_len; i++) {
-		o = 0;
-		for (uint_fast8_t j = 0; j < 2; j++) {
+		unsigned char o = 0;
+		for (unsigned char j = 0; j < 2; j++) {
 			o <<= 4;
 			if (*in >= 'A' && *in <= 'F')
 				*in += 'a'-'A';
@@ -70,12 +69,14 @@ unsigned int hex_string_to_byte_array_max(char *in, uint8_t *out, const unsigned
 	if (len > 2)
 		if (in[2] == ':' || in[2] == '-' || in[2] == ' ')
 			separator = 1;
-	if (separator)
+	if (separator) {
 		if ((len + 1) / 3 > max_len)
 			return 1;
-	else
+	}
+	else {
 		if (len / 2 > max_len)
 			return 1;
+	}
 
 	for (unsigned int i = 0; i < max_len; i++) {
 		o = 0;
@@ -189,7 +190,7 @@ unsigned int get_unix_datetime(char *s, time_t *datetime) {
 
 		if (get_int(s_month, &month) || get_int(s_year, &year))
 			return 1;
-		if ((year < 1970 && year > 2037) || (month < 1 && month > 12))
+		if (year < 1970 || year > 2038 || month < 1 || month > 12)
 			return 1;
 	} else {
 		return 1;
@@ -238,16 +239,12 @@ void byte_array_print(const uint8_t *buffer, const unsigned int length) {
 uint32_t h32_to_be(const uint32_t num) {
 	uint32_t tmp = num;
 	uint32_t res;
-	uint32_t b0, b1, b2, b3;
 	unsigned int i = 1;
 	char *p = (char *) &i;
 
 	if (p[0] == 1) { /* LE */
-		b0 = (tmp & 0x000000ff) << 24;
-		b1 = (tmp & 0x0000ff00) << 8;
-		b2 = (tmp & 0x00ff0000) >> 8;
-		b3 = (tmp & 0xff000000) >> 24;
-		res = b0 | b1 | b2 | b3;
+		res = ((tmp & 0x000000ff) << 24) | ((tmp & 0x0000ff00) << 8) |
+			  ((tmp & 0x00ff0000) >> 8) | ((tmp & 0xff000000) >> 24);
 	} else {         /* BE */
 		res = num;
 	}
@@ -258,14 +255,11 @@ uint32_t h32_to_be(const uint32_t num) {
 uint16_t be16_to_h(const uint16_t num) {
 	uint16_t tmp = num;
 	uint16_t res;
-	uint16_t b0, b1;
 	unsigned int i = 1;
 	char *p = (char *) &i;
 
 	if (p[0] == 1) { /* LE */
-		b0 = (tmp & 0x000000ff) << 8;
-		b1 = (tmp & 0x0000ff00) >> 8;
-		res = b0 | b1;
+		res = ((tmp & 0x000000ff) << 8) | ((tmp & 0x0000ff00) >> 8);
 	} else {         /* BE */
 		res = num;
 	}

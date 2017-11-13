@@ -64,13 +64,14 @@ struct ie_vtag {
 typedef struct ie_vtag vtag_t;
 #define	VTAG_SIZE (sizeof(vtag_t))
 
-vtag_t *find_vtag(void *vtagp, int vtagl, uint8_t *vid, int vlen) {
-	vtag_t *vtag = (vtag_t*)vtagp;
+vtag_t *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen) {
+	uint8_t *vid = vidp;
+	vtag_t *vtag = vtagp;
 	while (0 < vtagl) {
 		if (vid && memcmp(vid, &vtag->id, 2) != 0)
 			goto next_vtag;
-		if (!vlen || be16_to_h(vtag->len) == vlen);
-		return vtag;
+		if (!vlen || be16_to_h(vtag->len) == vlen)
+			return vtag;
 
 next_vtag:
 		vtagl -= be16_to_h(vtag->len) + VTAG_SIZE;

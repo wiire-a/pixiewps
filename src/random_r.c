@@ -130,9 +130,6 @@ void m_srandom_r(unsigned int seed, struct m_random_data *buf)
    Returns a pointer to the old state. */
 void m_initstate_r(unsigned int seed, char *arg_state, struct m_random_data *buf)
 {
-	int type;
-	int degree;
-	int separation;
 	int32_t *state = &((int32_t *)arg_state)[1];  /* First location */
 
 	/* Must set END_PTR before srandom */
