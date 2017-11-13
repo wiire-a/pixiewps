@@ -901,7 +901,7 @@ usage_err:
 
 						if (nonce_seed) { /* Seed found */
 							int32_t res;
-							uint_fast8_t i = 0;
+							int i = 0; /* Must hold MODE3_TRIES */
 							uint8_t tmp_s_nonce[16];
 
 							DEBUG_PRINT("Trying forward in time");
