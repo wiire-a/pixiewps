@@ -603,24 +603,20 @@ usage_err:
 		goto usage_err;
 	}
 
-	if (wps->mode_auto) { /* Mode auto */
-		p_mode[0] = RT;
-		if (wps->pke && (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
-						 !(wps->e_nonce[8] & 0x80) && !(wps->e_nonce[12] & 0x80))) {
-			p_mode[1] = RTL819x;
-			p_mode[2] = ECOS_SIMPLE;
-			p_mode[3] = NONE;
+	if (wps->mode_auto) { /* Mode auto, order by probability */
+		if (!memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN)) {
+			p_mode[0] = RTL819x;
+			p_mode[1] = NONE;
 		} else {
-			p_mode[1] = ECOS_SIMPLE;
-
-			/* Not tested */
-#ifdef EXTRA
-			p_mode[2] = ECOS_SIMPLEST;
-			p_mode[3] = ECOS_KNUTH;
-			p_mode[4] = NONE;
-#else
-			p_mode[2] = NONE;
-#endif
+			p_mode[0] = RT;
+			if (wps->pke && (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
+				p_mode[1] = RTL819x;
+				p_mode[2] = ECOS_SIMPLE;
+				p_mode[3] = NONE;
+			} else {
+				p_mode[1] = ECOS_SIMPLE;
+				p_mode[2] = NONE;
+			}
 		}
 	}
 
