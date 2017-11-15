@@ -1,8 +1,7 @@
 /*
- * Pixiewps: bruteforce the wps pin exploiting the low or non-existing entropy of some APs (pixie dust attack).
- *           All credits for the research go to Dominique Bongard.
+ * pixiewps: offline WPS brute-force utility that exploits low entropy PRNGs
  *
- * Copyright (c) 2015-2016, wiire <wi7ire@gmail.com>
+ * Copyright (c) 2015-2017, wiire <wi7ire@gmail.com>
  * SPDX-License-Identifier: GPL-3.0+
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,9 +13,6 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #ifndef PIXIEWPS_H
 #define PIXIEWPS_H
