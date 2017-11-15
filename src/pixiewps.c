@@ -351,10 +351,12 @@ memory_err:
 					r_time = t_current.tv_sec;
 					ts = *gmtime(&r_time);
 					strftime(buffer, 30, "%c", &ts);
-					fprintf(stderr, "\n Pixiewps %s\n\n"
+					fprintf(stderr, "\n ");
+					printf("Pixiewps %s", LONG_VERSION); fflush(stdout);
+					fprintf(stderr, "\n\n"
 							" [*] System time: %lu (%s UTC)\n"
 							" [*] Number of cores available: %u\n\n",
-							LONG_VERSION, (unsigned long) t_current.tv_sec, buffer, cores == 0 ? 1 : cores);
+							(unsigned long) t_current.tv_sec, buffer, cores == 0 ? 1 : cores);
 					free(wps->error);
 					free(wps);
 					return ARG_ERROR;
