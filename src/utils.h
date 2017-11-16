@@ -226,8 +226,8 @@ void byte_array_print(const uint8_t *buffer, const unsigned int length) {
 	unsigned int i;
 	for (i = 0; i < length; i++) {
 		printf("%02x", buffer[i]);
-		if (i != length - 1)
-			printf(":");
+//		if (i != length - 1)
+//			printf(":");
 	}
 }
 

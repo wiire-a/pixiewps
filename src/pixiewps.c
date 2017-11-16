@@ -517,37 +517,37 @@ usage_err:
 
 		printf("\n Pixiewps %s\n", SHORT_VERSION);
 		if (wps->verbosity > 1) {
-			printf("\n [*] Mode:                  %d (%s)", RTL819x, p_mode_name[RTL819x]);
+			printf("\n [?] Mode:     %d (%s)", RTL819x, p_mode_name[RTL819x]);
 		}
 		vtag_t *vtag;
 		if (wps->verbosity > 2) {
-			printf("\n [*] DHKey:                 "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
-			printf("\n [*] KDK:                   "); byte_array_print(wps->kdk, WPS_HASH_LEN);
-			printf("\n [*] AuthKey:               "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
-			printf("\n [*] EMSK:                  "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
-			printf("\n [*] KeyWrapKey:            "); byte_array_print(wps->wrapkey, WPS_KEYWRAPKEY_LEN);
+			printf("\n [*] DHKey:    "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
+			printf("\n [*] KDK:      "); byte_array_print(wps->kdk, WPS_HASH_LEN);
+			printf("\n [*] AuthKey:  "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
+			printf("\n [*] EMSK:     "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
+			printf("\n [*] KWKey:    "); byte_array_print(wps->wrapkey, WPS_KEYWRAPKEY_LEN);
 			if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_KEYWRAP_AUTH, WPS_TAG_KEYWRAP_AUTH_LEN))) {
 				memcpy(buffer, vtag->data, WPS_TAG_KEYWRAP_AUTH_LEN);
-				printf("\n [*] KeyWrap Authenticator: "); byte_array_print(buffer, WPS_TAG_KEYWRAP_AUTH_LEN);
+				printf("\n [*] KWA:      "); byte_array_print(buffer, WPS_TAG_KEYWRAP_AUTH_LEN);
 			}
 		}
 		if ((vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN))) {
-			printf("\n [*] ES-1:                  "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+			printf("\n [*] ES1:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
 		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_E_SNONCE_2, WPS_NONCE_LEN))) {
-			printf("\n [*] ES-2:                  "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+			printf("\n [*] ES2:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
 		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_SSID, 0))) {
 			int tag_size = be16_to_h(vtag->len);
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
-			printf("\n [*] SSID:                  %s", buffer);
+			printf("\n [*] SSID:     %s", buffer);
 		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_NET_KEY, 0))) {
 			int tag_size = be16_to_h(vtag->len);
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
-			printf("\n [+] PSK:                   %s\n\n", buffer);
+			printf("\n [+] WPA-PSK:  %s\n\n", buffer);
 		} else {
 			printf("\n [-] PSK not found!\n\n");
 		}
@@ -1118,14 +1118,14 @@ usage_err:
 
 	if (found_p_mode) {
 		if (wps->verbosity > 1) {
-			printf("\n [*] Mode:       %u (%s)", found_p_mode, p_mode_name[found_p_mode]);
+			printf("\n [?] Mode:     %u (%s)", found_p_mode, p_mode_name[found_p_mode]);
 		}
 		if (wps->e_nonce) {
 			if (wps->verbosity > 2) {
 				if ((found_p_mode == ECOS_SIMPLE || (found_p_mode == RTL819x && nonce_seed)
 					|| found_p_mode == ECOS_SIMPLEST || found_p_mode == ECOS_KNUTH)) {
 
-					printf("\n [*] Seed nonce: %u", nonce_seed);
+					printf("\n [*] Seed N1:  %u", nonce_seed);
 				}
 				if (found_p_mode == RTL819x && nonce_seed) {
 					time_t seed_time;
@@ -1136,12 +1136,12 @@ usage_err:
 					ts = *gmtime(&seed_time);
 					strftime(buffer, 30, "%c", &ts);
 					printf(" (%s UTC)", buffer);
-					printf("\n [*] Seed E-S1:  %u", s1_seed);
+					printf("\n [*] Seed ES1: %u", s1_seed);
 					seed_time = s1_seed;
 					ts = *gmtime(&seed_time);
 					strftime(buffer, 30, "%c", &ts);
 					printf(" (%s UTC)", buffer);
-					printf("\n [*] Seed E-S2:  %u", s2_seed);
+					printf("\n [*] Seed ES2: %u", s2_seed);
 					seed_time = s2_seed;
 					ts = *gmtime(&seed_time);
 					strftime(buffer, 30, "%c", &ts);
@@ -1151,23 +1151,23 @@ usage_err:
 		}
 		if (wps->verbosity > 2) {
 			if (wps->dhkey) { /* To see if AuthKey was supplied or not */
-				printf("\n [*] DHKey:      "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
-				printf("\n [*] KDK:        "); byte_array_print(wps->kdk, WPS_HASH_LEN);
-				printf("\n [*] AuthKey:    "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
-				printf("\n [*] EMSK:       "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
-				printf("\n [*] KeyWrapKey: "); byte_array_print(wps->wrapkey, WPS_KEYWRAPKEY_LEN);
+				printf("\n [*] DHKey:    "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
+				printf("\n [*] KDK:      "); byte_array_print(wps->kdk, WPS_HASH_LEN);
+				printf("\n [*] AuthKey:  "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
+				printf("\n [*] EMSK:     "); byte_array_print(wps->emsk, WPS_EMSK_LEN);
+				printf("\n [*] KWKey:    "); byte_array_print(wps->wrapkey, WPS_KEYWRAPKEY_LEN);
 			}
-			printf("\n [*] PSK1:       "); byte_array_print(wps->psk1, WPS_PSK_LEN);
-			printf("\n [*] PSK2:       "); byte_array_print(wps->psk2, WPS_PSK_LEN);
+			printf("\n [*] PSK1:     "); byte_array_print(wps->psk1, WPS_PSK_LEN);
+			printf("\n [*] PSK2:     "); byte_array_print(wps->psk2, WPS_PSK_LEN);
 		}
 		if (wps->verbosity > 1) {
-			printf("\n [*] E-S1:       "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
-			printf("\n [*] E-S2:       "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
+			printf("\n [*] ES1:      "); byte_array_print(wps->e_s1, WPS_SECRET_NONCE_LEN);
+			printf("\n [*] ES2:      "); byte_array_print(wps->e_s2, WPS_SECRET_NONCE_LEN);
 		}
 		if (pin[0] == '\0') {
-			printf("\n [+] WPS pin:    <empty>");
+			printf("\n [+] WPS pin:  <empty>");
 		} else {
-			printf("\n [+] WPS pin:    %s", pin);
+			printf("\n [+] WPS pin:  %s", pin);
 		}
 	} else {
 		printf("\n [-] WPS pin not found!");
