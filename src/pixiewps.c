@@ -901,11 +901,11 @@ usage_err:
 							do {
 								i++;
 								glibc_seed(&glibc_prng, nonce_seed + i);
-								for (uint_fast8_t j = 0; j < GLIBC_MAX_GEN; j++) {
+								for (uint_fast8_t j = 0; j < 4; j++) {
 									uint32_t be = h32_to_be(glibc_rand(&glibc_prng));
 									memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
-									memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN);        /* E-S1 = E-S2 != E-Nonce */
 								}
+								memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
 								s1_seed = nonce_seed + i;
 								s2_seed = nonce_seed + i;
 
@@ -953,11 +953,11 @@ usage_err:
 								do {
 									i++;
 									glibc_seed(&glibc_prng, nonce_seed - i);
-									for (uint_fast8_t j = 0; j < GLIBC_MAX_GEN; j++) {
+									for (uint_fast8_t j = 0; j < 4; j++) {
 										uint32_t be = h32_to_be(glibc_rand(&glibc_prng));
 										memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
-										memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN);        /* E-S1 = E-S2 != E-Nonce */
 									}
+									memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
 									s1_seed = nonce_seed - i;
 									s2_seed = nonce_seed - i;
 
