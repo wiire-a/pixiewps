@@ -42,7 +42,8 @@
 #include "version.h"
 
 #define GLIBC_MAX_GEN 4
-#include "glibc_random.c"
+#include "random/glibc_random.c"
+#include "random/glibc_random_lazy.c"
 
 uint32_t ecos_rand_simplest(uint32_t *seed);
 uint32_t ecos_rand_simple(uint32_t *seed);
@@ -92,23 +93,20 @@ static struct job_control {
 } job_control;
 
 static void *crack_thread(void *arg) {
-	struct glibc_prng glibc_prng;
+	struct glibc_lazyprng glibc_lazyprng;
 	struct crack_job *j = arg;
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
+	uint32_t tmp[4];
 
 	while (!job_control.nonce_seed) {
 		unsigned int i;
-		glibc_seed(&glibc_prng, seed);
-		for (i = 0; i < GLIBC_FAST_MAX_GEN; i++) {
-			const unsigned int res = glibc_rand_fast(&glibc_prng);
-			if (res != job_control.randr_enonce[i])
-				break;
-		}
-
-		if (i == GLIBC_FAST_MAX_GEN) {
-			job_control.nonce_seed = seed;
-			DEBUG_PRINT("Seed found %u", seed);
+		glibc_lazyseed(&glibc_lazyprng, seed);
+		if (glibc_rand1(&glibc_lazyprng) == job_control.randr_enonce[0]) {
+			if (!memcmp(glibc_randfill(&glibc_lazyprng, tmp), job_control.randr_enonce, 4)) {
+				job_control.nonce_seed = seed;
+				DEBUG_PRINT("Seed found %u", seed);
+			}
 		}
 
 		if (seed == 0) break;

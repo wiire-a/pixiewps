@@ -52,7 +52,7 @@ struct m_random_data {
    Note: The code takes advantage of the fact that both the front and
    rear pointers can't wrap on the same call by not testing the rear
    pointer if the front one has wrapped. Returns a 31-bit random number. */
-void m_random_r(struct m_random_data *buf, int32_t *result)
+static void m_random_r(struct m_random_data *buf, int32_t *result)
 {
 	int32_t *state = buf->state;
 	int32_t *fptr = buf->fptr;
@@ -82,7 +82,7 @@ void m_random_r(struct m_random_data *buf, int32_t *result)
    information a given number of times to get rid of any initial dependencies
    introduced by the L.C.R.N.G. Note that the initialization of randtbl[]
    for default usage relies on values produced by this routine. */
-void m_srandom_r(unsigned int seed, struct m_random_data *buf)
+static void m_srandom_r(unsigned int seed, struct m_random_data *buf)
 {
 	long int word;
 	int i, kc;
@@ -128,7 +128,7 @@ void m_srandom_r(unsigned int seed, struct m_random_data *buf)
    Note: The first thing we do is save the current state, if any, just like
    setstate so that it doesn't matter when initstate is called.
    Returns a pointer to the old state. */
-void m_initstate_r(unsigned int seed, char *arg_state, struct m_random_data *buf)
+static void m_initstate_r(unsigned int seed, char *arg_state, struct m_random_data *buf)
 {
 	int32_t *state = &((int32_t *)arg_state)[1];  /* First location */
 
