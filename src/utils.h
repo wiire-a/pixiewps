@@ -122,6 +122,18 @@ int get_int(char *in, int *out) {
 	return 0;
 }
 
+unsigned int bit_revert(unsigned int v) {
+	int i;
+	unsigned int lsb, n = 0;
+	for (i = 0; i < sizeof(unsigned int) * 8; i++) {
+		lsb = v & 1;
+		v >>= 1;
+		n <<= 1;
+		n |= lsb;
+	}
+	return n;
+}
+
 /* Custom timegm function made by Eric S Raymond */
 time_t c_timegm(register struct tm *t) {
 	register long year;
