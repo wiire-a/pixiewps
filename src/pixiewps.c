@@ -104,7 +104,7 @@ static void crack_thread_rtl(struct crack_job *j) {
 		unsigned int i;
 		glibc_lazyseed(&glibc_lazyprng, seed);
 		if (glibc_rand1(&glibc_lazyprng) == job_control.randr_enonce[0]) {
-			if (!memcmp(glibc_randfill(&glibc_lazyprng, tmp), job_control.randr_enonce, 4)) {
+			if (!memcmp(glibc_randfill(&glibc_lazyprng, tmp), job_control.randr_enonce, WPS_NONCE_LEN)) {
 				job_control.nonce_seed = seed;
 				DEBUG_PRINT("Seed found %u", seed);
 			}

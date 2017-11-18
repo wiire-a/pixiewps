@@ -26,10 +26,11 @@ static unsigned int glibc_rand1(struct glibc_lazyprng *prng)
 static int *glibc_randfill(struct glibc_lazyprng *prng, uint32_t *arr)
 {
 	int *state = prng->state;
-	arr[0] = ((unsigned int)(state[344 - 31]     + state[344 - 3]))     >> 1;
-	arr[1] = ((unsigned int)(state[344 - 31 + 1] + state[344 - 3 + 1])) >> 1;
-	arr[2] = ((unsigned int)(state[344 - 31 + 2] + state[344 - 3 + 2])) >> 1;
-	arr[3] = ((unsigned int)(state[344 - 31 + 3] + arr[0]))             >> 1;
+	int const first = state[344 - 31] + state[344 - 3];
+	arr[0] = ((unsigned int)first) >> 1;
+	arr[1] = ((unsigned int)(state[344 - 31 + 1] + state[342 - 31] + state[342 - 3])) >> 1;
+	arr[2] = ((unsigned int)(state[344 - 31 + 2] + state[343 - 31] + state[343 - 3])) >> 1;
+	arr[3] = ((unsigned int)(state[344 - 31 + 3] + first))  >> 1;
 	return arr;
 }
 
