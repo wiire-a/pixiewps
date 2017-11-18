@@ -1,10 +1,10 @@
-.TH PIXIEWPS "1" "September 2016" "pixiewps " "Offline WPS bruteforce tool"
+.TH PIXIEWPS "1" "November 2017" "pixiewps " "Offline WPS bruteforce tool"
 .SH NAME
-\fBpixiewps\fR \- Offline WPS bruteforce tool
+\fBpixiewps\fR \- Offline Wi-Fi Protected Setup bruteforce tool
 .SH DESCRIPTION
 .IP
-Pixiewps is a tool written in C used to bruteforce offline the WPS pin
-exploiting the low or non-existing entropy of some APs (pixie dust attack).
+Pixiewps is a tool written in C used to bruteforce offline the WPS PIN method exploiting
+the low or non-existing entropy of some Access Points, the so-called "pixie dust attack".
 .IP
 It is meant for educational purposes only.
 .IP
@@ -15,25 +15,28 @@ It is meant for educational purposes only.
 .SS REQUIRED ARGUMENTS
 \fB\-e\fR, \fB\-\-pke\fR
 .IP
-Enrollee DH public key, found in M1.
+Enrollee's DH public key, found in M1.
 .PP
 \fB\-r\fR, \fB\-\-pkr\fR
 .IP
-Registrar DH public key, found in M2. It can be avoided by specifying \fB\-S, \-\-dh\-small\fR in both Reaver and Pixiewps.
+Registrar's DH public key, found in M2. It can be avoided by specifying \fB\-\-dh\-small\fR
+in both Reaver and pixiewps.
 .IP
 pixiewps \fB\-e\fR <pke> \fB\-s\fR <e\-hash1> \fB\-z\fR <e\-hash2> \fB\-a\fR <authkey> \fB\-n\fR <e\-nonce> \fB\-S\fR
 .PP
 \fB\-s\fR, \fB\-\-e\-hash1\fR
 .IP
-Enrollee hash\-1, found in M3.
+Enrollee's hash 1, found in M3. It's the hash of the first half of the PIN.
 .PP
 \fB\-z\fR, \fB\-\-e\-hash2\fR
 .IP
-Enrollee hash\-2, found in M3.
+Enrollee's hash 2, found in M3. It's the hash of the second half of the PIN.
 .PP
 \fB\-a\fR, \fB\-\-authkey\fR
 .IP
-Authentication session key. Although for this parameter a modified version of Reaver or Bully is needed, it can be avoided by specifying small Diffie\-Hellman keys in both Reaver and Pixiewps and supplying \fB\-\-e\-nonce\fR, \fB\-\-r\-nonce\fR and \fB\-\-e\-bssid\fR.
+Authentication session key. Although for this parameter a modified version of Reaver or Bully
+is needed, it can be avoided by specifying small Diffie\-Hellman keys in both Reaver and pixiewps
+and supplying \fB\-\-e\-nonce\fR, \fB\-\-r\-nonce\fR and \fB\-\-e\-bssid\fR.
 .IP
 pixiewps \fB\-e\fR <pke> \fB\-s\fR <e\-hash1> \fB\-z\fR <e\-hash2> \fB\-S\fR \fB\-n\fR <e\-nonce> \fB\-m\fR <r\-nonce> \fB\-b\fR <e\-bssid>
 .PP
@@ -44,15 +47,17 @@ Enrollee's nonce, found in M1.
 .SS OPTIONAL ARGUMENTS
 \fB\-m\fR, \fB\-\-r\-nonce\fR
 .IP
-Registrar's nonce, found in M2.
+Registrar's nonce, found in M2. Used with other parameters to compute the session keys.
 .PP
 \fB\-b\fR, \fB\-\-e\-bssid\fR
 .IP
-Enrollee's BSSID.
+Enrollee's BSSID. Used with other parameters to compute the session keys.
 .PP
-\fB\-S\fR, \fB\-\-dh\-small\fR
+\fB\-S\fR, \fB\-\-dh\-small\fR (deprecated)
 .IP
-Small Diffie\-Hellman keys. The same option MUST be specified in Reaver (1.3 or later versions) too. This option DOES NOT WORK (currently) with mode 3.
+Small Diffie\-Hellman keys. The same option must be specified in Reaver too. Some Access Points
+seem to be buggy and don't behave correctly with this option. Avoid using it with Reaver when
+possible.
 .PP
 \fB\-v\fR, \fB\-\-verbosity\fR
 .IP
@@ -68,7 +73,7 @@ Display verbose help.
 .PP
 \fB\-V\fR, \fB\-\-version\fR
 .IP
-Display version information.
+Display version and other information.
 .PP
 \fB\-\-mode\fR N[,... N]
 .IP
@@ -86,13 +91,31 @@ Select modes, comma separated (experimental modes are not used unless specified)
 .PP
 \fB\-\-start\fR [mm/]yyyy
 .TP
-\fB\-\-end\fR
-[mm/]yyyy
+\fB\-\-end\fR [mm/]yyyy
 .IP
 Starting and ending dates for mode 3, they are interchangeable.
 .IP
-If only one is specified, the machine current time will be used for the other. The earliest possible date is 01/1970, corresponding to 0 (Epoch time).
+If only one is specified, the current time will be used for the other. The earliest possible date
+is 01/1970, corresponding to 0 (Unix epoch time). If \fB\-\-force\fR is used then pixiewps will
+start from the current time and go back all the way to 0.
+.PP
+.SS MISCELLANEOUS ARGUMENTS
+\fB\-7\fR, \fB\-\-m7\-enc\fR
 .IP
+Encrypted settings, found in M7. Recover Enrollee's WPA-PSK and secret nonce 2. This feature only
+works on some Access Points vulnerable to mode 3.
+.IP
+pixiewps \fB\-e\fR <pke> \fB\-r\fR <pkr> \fB\-n\fR <e\-nonce> \fB\-m\fR <r\-nonce> \fB\-b\fR <e\-bssid> \fB\-7\fR <enc7> \fB\-\-mode 3\fR
+.PP
+\fB\-5\fR, \fB\-\-m5\-enc\fR
+.IP
+Encrypted settings, found in M5. Recover Enrollee's secret nonce 1. This option must be used in
+conjunction with \fB\-\-m7\-enc\fR. If \fB\-\-e\-hash1\fR and \fB\-\-e\-hash2\fR are also specified,
+pixiewps will also recover the WPS PIN.
+.IP
+pixiewps \fB\-e\fR <pke> \fB\-r\fR <pkr> \fB\-n\fR <e\-nonce> \fB\-m\fR <r\-nonce> \fB\-b\fR <e\-bssid> \fB\-7\fR <enc7> \fB\-5\fR <enc5> \fB\-\-mode 3\fR
+.IP
+pixiewps \fB\-e\fR <pke> \fB\-r\fR <pkr> \fB\-n\fR <e\-nonce> \fB\-m\fR <r\-nonce> \fB\-b\fR <e\-bssid> \fB\-7\fR <enc7> \fB\-5\fR <enc5> \fB\-\-mode 3\fR \fB\-s\fR <e\-hash1> \fB\-z\fR <e\-hash2>
 .SH EXAMPLES
 pixiewps --pke <pke> --pkr <pkr> --e-hash1 <e-hash1> --e-hash2 <e-hash2> --authkey <authkey> --e-nonce <e-nonce>
 .PP
