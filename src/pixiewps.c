@@ -978,11 +978,12 @@ usage_err:
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
-					nonce_seed = seed;
+					nonce_seed = index;
 
+					s1_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
 						wps->e_s1[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
-
+					s2_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
 						wps->e_s2[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
 
@@ -1201,15 +1202,17 @@ usage_err:
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
-					nonce_seed = seed;
+					nonce_seed = index;
 
+					s1_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
 						wps->e_s1[i] = (uint8_t) ecos_rand_simplest(&seed);
 
+					s2_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
 						wps->e_s2[i] = (uint8_t) ecos_rand_simplest(&seed);
 
-					DEBUG_PRINT("Seed found");
+					DEBUG_PRINT("Seed found %u", nonce_seed);
 					break;
 				}
 				index++;
@@ -1245,15 +1248,17 @@ usage_err:
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
-					nonce_seed = seed;
+					nonce_seed = index;
 
+					s1_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
 						wps->e_s1[i] = (uint8_t) ecos_rand_knuth(&seed);
 
+					s2_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
 						wps->e_s2[i] = (uint8_t) ecos_rand_knuth(&seed);
 
-					DEBUG_PRINT("Seed found");
+					DEBUG_PRINT("Seed found %u", nonce_seed);
 					break;
 				}
 				index++;
@@ -1297,35 +1302,32 @@ usage_err:
 		}
 		if (wps->e_nonce) {
 			if (wps->verbosity > 2) {
-				if ((found_p_mode == ECOS_SIMPLE || (found_p_mode == RTL819x && nonce_seed)
-						|| found_p_mode == ECOS_SIMPLEST || found_p_mode == ECOS_KNUTH)) {
+				if (found_p_mode != NONE) {
+					if (found_p_mode == RTL819x) {
+						time_t seed_time;
+						struct tm ts;
+						char buffer[30];
 
-					printf("\n [*] Seed N1:  %u", nonce_seed);
-				}
-				if (found_p_mode == RT && s1_seed && s2_seed) {
-					printf("\n [*] Seed N1:  0x%08x", nonce_seed);
-					printf("\n [*] Seed ES1: 0x%08x", s1_seed);
-					printf("\n [*] Seed ES2: 0x%08x", s2_seed);
-				}
-				if (found_p_mode == RTL819x && nonce_seed) {
-					time_t seed_time;
-					struct tm ts;
-					char buffer[30];
-
-					seed_time = nonce_seed;
-					ts = *gmtime(&seed_time);
-					strftime(buffer, 30, "%c", &ts);
-					printf(" (%s UTC)", buffer);
-					printf("\n [*] Seed ES1: %u", s1_seed);
-					seed_time = s1_seed;
-					ts = *gmtime(&seed_time);
-					strftime(buffer, 30, "%c", &ts);
-					printf(" (%s UTC)", buffer);
-					printf("\n [*] Seed ES2: %u", s2_seed);
-					seed_time = s2_seed;
-					ts = *gmtime(&seed_time);
-					strftime(buffer, 30, "%c", &ts);
-					printf(" (%s UTC)", buffer);
+						printf("\n [*] Seed N1:  %u", nonce_seed);
+						seed_time = nonce_seed;
+						ts = *gmtime(&seed_time);
+						strftime(buffer, 30, "%c", &ts);
+						printf(" (%s UTC)", buffer);
+						printf("\n [*] Seed ES1: %u", s1_seed);
+						seed_time = s1_seed;
+						ts = *gmtime(&seed_time);
+						strftime(buffer, 30, "%c", &ts);
+						printf(" (%s UTC)", buffer);
+						printf("\n [*] Seed ES2: %u", s2_seed);
+						seed_time = s2_seed;
+						ts = *gmtime(&seed_time);
+						strftime(buffer, 30, "%c", &ts);
+						printf(" (%s UTC)", buffer);
+					} else {
+						printf("\n [*] Seed N1:  0x%08x", nonce_seed);
+						printf("\n [*] Seed ES1: 0x%08x", s1_seed);
+						printf("\n [*] Seed ES2: 0x%08x", s2_seed);
+					}
 				}
 			}
 		}
