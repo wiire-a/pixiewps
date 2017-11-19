@@ -245,7 +245,7 @@ static void init_crack_jobs(struct global *wps, int mode) {
 
 	job_control.crack_jobs = malloc(wps->jobs * sizeof (struct job_control));
 	uint32_t curr = (mode == RTL819x) ? wps->start : 0;
-	uint32_t add = (mode == RTL819x) ? -SEEDS_PER_JOB_BLOCK : SEEDS_PER_JOB_BLOCK;
+	int32_t add = (mode == RTL819x) ? -SEEDS_PER_JOB_BLOCK : SEEDS_PER_JOB_BLOCK;
 	for(i = 0; i < wps->jobs; i++) {
 		job_control.crack_jobs[i].start = curr;
 		setup_thread(i);
