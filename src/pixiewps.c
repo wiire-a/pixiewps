@@ -115,7 +115,7 @@ static void crack_thread_rtl(struct crack_job *j) {
 		seed--;
 
 		if (seed < j->start - SEEDS_PER_JOB_BLOCK) {
-			long long tmp = j->start - SEEDS_PER_JOB_BLOCK * job_control.jobs;
+			int64_t tmp = (int64_t)j->start - SEEDS_PER_JOB_BLOCK * job_control.jobs;
 			if (tmp < 0) break;
 			j->start = tmp;
 			seed = j->start;
