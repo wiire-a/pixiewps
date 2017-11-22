@@ -170,7 +170,6 @@ time_t c_timegm(register struct tm *t) {
 unsigned int get_unix_datetime(char *s, time_t *datetime) {
 	unsigned int len = strlen(s);
 	int month = 0, year;
-	struct tm t;
 
 	if (len == 4) {
 		if (get_int(s, &year))
@@ -198,23 +197,29 @@ unsigned int get_unix_datetime(char *s, time_t *datetime) {
 
 		if (get_int(s_month, &month) || get_int(s_year, &year))
 			return 1;
-		if (year < 1970 || year > 2038 || month < 1 || month > 12)
+		if (year < 1970 || year > 2038 || month < 1 || month > 12 || (month > 2 && year == 2038))
 			return 1;
 	} else {
 		return 1;
 	}
 
-	t.tm_sec = 0;
-	t.tm_min = 0;
-	t.tm_hour = 0;
-	t.tm_mday = 1;
-	t.tm_mon = month - 1;
-	t.tm_year = year - 1900;
-	t.tm_isdst = 0;
-	*datetime = c_timegm(&t);
+	if (year == 2038 && month == 2) {
+		*datetime = (time_t) 0x7fffffff;
+	}
+	else {
+		struct tm t;
+		t.tm_sec = 0;
+		t.tm_min = 0;
+		t.tm_hour = 0;
+		t.tm_mday = 1;
+		t.tm_mon = month - 1;
+		t.tm_year = year - 1900;
+		t.tm_isdst = 0;
+		*datetime = c_timegm(&t);
 
-	if (*datetime < 0)
-		return 1;
+		if (*datetime < 0) /* When time_t is 64 bits this check is pointless */
+			return 1;
+	}
 
 	return 0;
 }
