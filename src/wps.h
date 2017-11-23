@@ -60,7 +60,8 @@ struct ie_vtag {
 typedef struct ie_vtag vtag_t;
 #define	VTAG_SIZE (sizeof(vtag_t))
 
-vtag_t *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen) {
+vtag_t *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen)
+{
 	uint8_t *vid = vidp;
 	vtag_t *vtag = vtagp;
 	while (0 < vtagl) {
@@ -71,7 +72,7 @@ vtag_t *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen) {
 
 next_vtag:
 		vtagl -= be16_to_h(vtag->len) + VTAG_SIZE;
-		vtag = (vtag_t*)((uint8_t*) vtag + be16_to_h(vtag->len) + VTAG_SIZE);
+		vtag = (vtag_t *)((uint8_t *)vtag + be16_to_h(vtag->len) + VTAG_SIZE);
 	}
 	return NULL;
 }
@@ -101,7 +102,8 @@ static const uint8_t kdf_salt[] = {
 };
 
 /* Key Derivation Function */
-void kdf(const void *key, uint8_t *res) {
+void kdf(const void *key, uint8_t *res)
+{
 	const uint32_t kdk_len = (WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN + WPS_EMSK_LEN) * 8;
 	uint_fast8_t j = 0;
 
@@ -120,7 +122,8 @@ void kdf(const void *key, uint8_t *res) {
 }
 
 /* Decrypt encrypted settings in M7-M8 */
-uint8_t *decrypt_encr_settings(uint8_t *keywrapkey, const uint8_t *encr, size_t encr_len) {
+uint8_t *decrypt_encr_settings(uint8_t *keywrapkey, const uint8_t *encr, size_t encr_len)
+{
 	uint8_t *decrypted;
 	const size_t block_size = 16;
 	size_t i;
@@ -160,7 +163,8 @@ uint8_t *decrypt_encr_settings(uint8_t *keywrapkey, const uint8_t *encr, size_t 
 }
 
 /* Pin checksum computing */
-static inline uint_fast8_t wps_pin_checksum(uint_fast32_t pin) {
+static inline uint_fast8_t wps_pin_checksum(uint_fast32_t pin)
+{
 	unsigned int acc = 0;
 	while (pin) {
 		acc += 3 * (pin % 10);
@@ -172,12 +176,14 @@ static inline uint_fast8_t wps_pin_checksum(uint_fast32_t pin) {
 }
 
 /* Validity PIN control based on checksum */
-static inline uint_fast8_t wps_pin_valid(uint_fast32_t pin) {
+static inline uint_fast8_t wps_pin_valid(uint_fast32_t pin)
+{
 	return wps_pin_checksum(pin / 10) == (pin % 10);
 }
 
 /* Checks if PKe == 2 */
-static inline uint_fast8_t check_small_dh_keys(const uint8_t *data) {
+static inline uint_fast8_t check_small_dh_keys(const uint8_t *data)
+{
 	uint_fast8_t i = WPS_PKEY_LEN - 2;
 	while (--i) {
 		if (data[i] != 0)

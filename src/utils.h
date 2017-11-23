@@ -24,7 +24,8 @@
 #include <sys/types.h>
 
 /* Converts an hex string to a byte array */
-unsigned int hex_string_to_byte_array(char *in, uint8_t *out, const unsigned int n_len) {
+unsigned int hex_string_to_byte_array(char *in, uint8_t *out, const unsigned int n_len)
+{
 	unsigned int len = strlen(in);
 	unsigned int b_len = n_len * 2 + n_len - 1;
 
@@ -57,7 +58,9 @@ unsigned int hex_string_to_byte_array(char *in, uint8_t *out, const unsigned int
 }
 
 /* Converts an hex string to a byte array */
-unsigned int hex_string_to_byte_array_max(char *in, uint8_t *out, const unsigned int max_len, unsigned int *m_len) {
+unsigned int hex_string_to_byte_array_max(
+		char *in, uint8_t *out, const unsigned int max_len, unsigned int *m_len)
+{
 	uint_fast8_t o, separator = 0;
 	unsigned int count = 0;
 	unsigned int len = strlen(in);
@@ -109,7 +112,8 @@ end:
 }
 
 /* Converts a string into an integer */
-int get_int(char *in, int *out) {
+int get_int(char *in, int *out)
+{
 	int i, o = 0, len = strlen(in);
 	for (i = 0; i < len; i++) {
 		if ('0' <= *in && *in <= '9')
@@ -122,7 +126,8 @@ int get_int(char *in, int *out) {
 	return 0;
 }
 
-unsigned int bit_revert(unsigned int v) {
+unsigned int bit_revert(unsigned int v)
+{
 	int i;
 	unsigned int lsb, n = 0;
 	for (i = 0; i < sizeof(unsigned int) * 8; i++) {
@@ -135,9 +140,10 @@ unsigned int bit_revert(unsigned int v) {
 }
 
 /* Custom timegm function made by Eric S Raymond */
-time_t c_timegm(register struct tm *t) {
-	register long year;
-	register time_t result;
+time_t c_timegm(register struct tm *t)
+{
+	long year;
+	time_t result;
 
 	#define MONTHS_PER_YEAR 12 /* Months per calendar year */
 
@@ -167,14 +173,16 @@ time_t c_timegm(register struct tm *t) {
 }
 
 /* Converts a [mm/]yyyy string to Unix date time */
-unsigned int get_unix_datetime(char *s, time_t *datetime) {
+unsigned int get_unix_datetime(char *s, time_t *datetime)
+{
 	unsigned int len = strlen(s);
 	int month = 0, year;
 
 	if (len == 4) {
 		if (get_int(s, &year))
 			return 1;
-	} else if (len == 7) {
+	}
+	else if (len == 7) {
 		if (s[2] != '/' && s[2] != '-' && s[2] != '.')
 			return 1;
 
@@ -183,7 +191,8 @@ unsigned int get_unix_datetime(char *s, time_t *datetime) {
 		if (s[0] == '0') {
 			s_month[0] = s[1];
 			s_month[1] = 0;
-		} else {
+		}
+		else {
 			s_month[0] = s[0];
 			s_month[1] = s[1];
 			s_month[2] = 0;
@@ -199,12 +208,13 @@ unsigned int get_unix_datetime(char *s, time_t *datetime) {
 			return 1;
 		if (year < 1970 || year > 2038 || month < 1 || month > 12 || (month > 2 && year == 2038))
 			return 1;
-	} else {
+	}
+	else {
 		return 1;
 	}
 
 	if (year == 2038 && month == 2) {
-		*datetime = (time_t) 0x7fffffff;
+		*datetime = (time_t)0x7fffffff;
 	}
 	else {
 		struct tm t;
@@ -225,12 +235,14 @@ unsigned int get_unix_datetime(char *s, time_t *datetime) {
 }
 
 /* Returns the difference of time between the two in milliseconds */
-unsigned long get_elapsed_ms(struct timeval *start, struct timeval *end) {
+unsigned long get_elapsed_ms(struct timeval *start, struct timeval *end)
+{
 	return (((end->tv_sec - start->tv_sec) * 1000000 + (end->tv_usec - start->tv_usec)) / 1000);
 }
 
 /* Converts an unsigned integer to a char array without termination */
-static inline void uint_to_char_array(unsigned int num, unsigned int len, uint8_t *dst) {
+static inline void uint_to_char_array(unsigned int num, unsigned int len, uint8_t *dst)
+{
 	unsigned int mul = 1;
 	while (len--) {
 		dst[len] = (num % (mul * 10) / mul) + '0';
@@ -239,9 +251,9 @@ static inline void uint_to_char_array(unsigned int num, unsigned int len, uint8_
 }
 
 /* Prints a byte array in hexadecimal */
-void byte_array_print(const uint8_t *buffer, const unsigned int length) {
-	unsigned int i;
-	for (i = 0; i < length; i++) {
+void byte_array_print(const uint8_t *buffer, const unsigned int length)
+{
+	for (unsigned int i = 0; i < length; i++) {
 		printf("%02x", buffer[i]);
 //		if (i != length - 1)
 //			printf(":");
@@ -249,33 +261,39 @@ void byte_array_print(const uint8_t *buffer, const unsigned int length) {
 }
 
 /* Converts a 32 Little Endian bit number to its Big Endian representation */
-uint32_t h32_to_be(const uint32_t num) {
+uint32_t h32_to_be(const uint32_t num)
+{
 	uint32_t tmp = num;
 	uint32_t res;
 	unsigned int i = 1;
-	char *p = (char *) &i;
+	char *p = (char *)&i;
 
 	if (p[0] == 1) { /* LE */
 		res = ((tmp & 0x000000ff) << 24) | ((tmp & 0x0000ff00) << 8) |
 			  ((tmp & 0x00ff0000) >> 8) | ((tmp & 0xff000000) >> 24);
-	} else {         /* BE */
+	}
+	else {         /* BE */
 		res = num;
 	}
+
 	return res;
 }
 
 /* Converts a 16 Big Endian bit number to the host representation */
-uint16_t be16_to_h(const uint16_t num) {
+uint16_t be16_to_h(const uint16_t num)
+{
 	uint16_t tmp = num;
 	uint16_t res;
 	unsigned int i = 1;
-	char *p = (char *) &i;
+	char *p = (char *)&i;
 
 	if (p[0] == 1) { /* LE */
 		res = ((tmp & 0x000000ff) << 8) | ((tmp & 0x0000ff00) >> 8);
-	} else {         /* BE */
+	}
+	else {         /* BE */
 		res = num;
 	}
+
 	return res;
 }
 

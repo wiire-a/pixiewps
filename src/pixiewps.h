@@ -239,7 +239,8 @@ char v_usage[] =
 	"\n";
 
 /* One digit comma separated number parsing */
-static inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint8_t max_digit) {
+static inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint8_t max_digit)
+{
 	uint_fast8_t cnt = 0;
 	while (*list != 0) {
 		if (*list <= ((char) max_digit) + '0') {
@@ -258,7 +259,8 @@ static inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint8
 }
 
 /* Checks if passed mode is selected */
-static inline uint_fast8_t is_mode_selected(const uint_fast8_t mode) {
+static inline uint_fast8_t is_mode_selected(const uint_fast8_t mode)
+{
 	for (uint_fast8_t i = 0; i < MODE_LEN && p_mode[i] != NONE; i++) {
 		if (p_mode[i] == mode)
 			return 1;

