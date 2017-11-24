@@ -79,7 +79,7 @@ Display version and other information.
 .IP
 Select modes, comma separated (experimental modes are not used unless specified):
 .IP
-\fB1\fR \- RT/MT
+\fB1\fR \- RT/MT/CL
 .IP
 \fB2\fR \- eCos simple
 .IP
@@ -96,8 +96,8 @@ Select modes, comma separated (experimental modes are not used unless specified)
 Starting and ending dates for mode 3, they are interchangeable.
 .IP
 If only one is specified, the current time will be used for the other. The earliest possible date
-is 01/1970, corresponding to 0 (Unix epoch time). If \fB\-\-force\fR is used then pixiewps will
-start from the current time and go back all the way to 0.
+is 01/1970, corresponding to 0 (Unix epoch time), the latest is 02/2038, corresponding to 0x7FFFFFFF.
+If \fB\-\-force\fR is used then pixiewps will start from the current time and go back all the way to 0.
 .PP
 .SS MISCELLANEOUS ARGUMENTS
 \fB\-7\fR, \fB\-\-m7\-enc\fR
