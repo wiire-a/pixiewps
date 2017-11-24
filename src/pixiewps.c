@@ -34,8 +34,8 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
-#include "pixiewps.h"
 #include "config.h"
+#include "pixiewps.h"
 #include "crypto/crypto_internal-modexp.c"
 #include "crypto/aes-cbc.c"
 #include "utils.h"
@@ -671,7 +671,7 @@ usage_err:
 				printf("\n [*] ES2:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
 		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_SSID, 0))) {
-			int tag_size = be16_to_h(vtag->len);
+			int tag_size = end_ntoh16(vtag->len);
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
 			printf("\n [*] SSID:     %s", buffer);
@@ -683,7 +683,7 @@ usage_err:
 				printf("\n [+] WPS pin:  %s", pin);
 		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_NET_KEY, 0))) {
-			int tag_size = be16_to_h(vtag->len);
+			int tag_size = end_ntoh16(vtag->len);
 			memcpy(buffer, vtag->data, tag_size);
 			buffer[tag_size] = '\0';
 			printf("\n [+] WPA-PSK:  %s", buffer);
@@ -1108,7 +1108,7 @@ usage_err:
 								i++;
 								glibc_seed(&glibc_prng, nonce_seed + i);
 								for (uint_fast8_t j = 0; j < 4; j++) {
-									uint32_t be = h32_to_be(glibc_rand(&glibc_prng));
+									uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
 									memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
 								}
 								memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
@@ -1164,7 +1164,7 @@ usage_err:
 									i++;
 									glibc_seed(&glibc_prng, nonce_seed - i);
 									for (uint_fast8_t j = 0; j < 4; j++) {
-										uint32_t be = h32_to_be(glibc_rand(&glibc_prng));
+										uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
 										memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
 									}
 									memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */

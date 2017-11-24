@@ -260,41 +260,4 @@ void byte_array_print(const uint8_t *buffer, const unsigned int length)
 	}
 }
 
-/* Converts a 32 Little Endian bit number to its Big Endian representation */
-uint32_t h32_to_be(const uint32_t num)
-{
-	uint32_t tmp = num;
-	uint32_t res;
-	unsigned int i = 1;
-	char *p = (char *)&i;
-
-	if (p[0] == 1) { /* LE */
-		res = ((tmp & 0x000000ff) << 24) | ((tmp & 0x0000ff00) << 8) |
-			  ((tmp & 0x00ff0000) >> 8) | ((tmp & 0xff000000) >> 24);
-	}
-	else {         /* BE */
-		res = num;
-	}
-
-	return res;
-}
-
-/* Converts a 16 Big Endian bit number to the host representation */
-uint16_t be16_to_h(const uint16_t num)
-{
-	uint16_t tmp = num;
-	uint16_t res;
-	unsigned int i = 1;
-	char *p = (char *)&i;
-
-	if (p[0] == 1) { /* LE */
-		res = ((tmp & 0x000000ff) << 8) | ((tmp & 0x0000ff00) >> 8);
-	}
-	else {         /* BE */
-		res = num;
-	}
-
-	return res;
-}
-
 #endif /* UTILS_H */

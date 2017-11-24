@@ -35,8 +35,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "pixiewps.h"
 #include "config.h"
+#include "pixiewps.h"
 #include "utils.h"
 
 struct ie_vtag {
@@ -65,14 +65,15 @@ vtag_t *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen)
 	uint8_t *vid = vidp;
 	vtag_t *vtag = vtagp;
 	while (0 < vtagl) {
+		const int len = end_ntoh16(vtag->len);
 		if (vid && memcmp(vid, &vtag->id, 2) != 0)
 			goto next_vtag;
-		if (!vlen || be16_to_h(vtag->len) == vlen)
+		if (!vlen || len == vlen)
 			return vtag;
 
 next_vtag:
-		vtagl -= be16_to_h(vtag->len) + VTAG_SIZE;
-		vtag = (vtag_t *)((uint8_t *)vtag + be16_to_h(vtag->len) + VTAG_SIZE);
+		vtagl -= len + VTAG_SIZE;
+		vtag = (vtag_t *)((uint8_t *)vtag + len + VTAG_SIZE);
 	}
 	return NULL;
 }
@@ -110,10 +111,10 @@ void kdf(const void *key, uint8_t *res)
 	uint8_t *buffer = malloc(sizeof(kdf_salt) + sizeof(uint32_t) * 2);
 
 	for (uint32_t i = 1; i < 4; i++) {
-		uint32_t be = h32_to_be(i);
+		uint32_t be = end_htobe32(i);
 		memcpy(buffer, &be, sizeof(uint32_t));
 		memcpy(buffer + sizeof(uint32_t), kdf_salt, sizeof(kdf_salt));
-		be = h32_to_be(kdk_len);
+		be = end_htobe32(kdk_len);
 		memcpy(buffer + sizeof(uint32_t) + sizeof(kdf_salt), &be, sizeof(uint32_t));
 		hmac_sha256(key, WPS_HASH_LEN, buffer, sizeof(kdf_salt) + sizeof(uint32_t) * 2, res + j);
 		j += WPS_HASH_LEN;

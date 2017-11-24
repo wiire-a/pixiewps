@@ -19,6 +19,9 @@
 
 #include <stdint.h>
 
+#define ENDIANNESS_PORTABLE_CONVERSION
+#include "endianness.h"
+
 typedef unsigned char uint8_t;
 
 #include "mbedtls/md_internal.h"
