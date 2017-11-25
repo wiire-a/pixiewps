@@ -1,6 +1,6 @@
 # Overview [![License](https://img.shields.io/badge/License-GPL%20v3%2B-blue.svg?style=flat-square)](https://github.com/wiire/pixiewps/blob/master/LICENSE.md)
 
-**Pixiewps** is a tool written in C used to **bruteforce offline** the WPS PIN exploiting the low or non-existing entropy of some Access Points, the so-called "pixie dust attack" discovered by Dominique Bongard in summer 2014. It is meant for educational purposes only.
+**Pixiewps** is a tool written in C used to **bruteforce offline** the WPS PIN exploiting the low or non-existing entropy of some Access Points, the so-called "pixie-dust attack" discovered by Dominique Bongard in summer 2014. It is meant for educational purposes only.
 
 As opposed to the traditional online brute-force attack, implemented in tools like Reaver or Bully which aim to recover the pin in a few hours, this method can get the PIN in only a matter of **milliseconds** to **minutes**, depending on the target, **if vulnerable**.
 
@@ -68,9 +68,7 @@ Optional arguments:
 
   -m, --r-nonce     : Registrar nonce
   -b, --e-bssid     : Enrollee BSSID
-  -S, --dh-small    : Small Diffie-Hellman keys (PKr not needed)  [No]
-  -f, --force       : Brute-force timestamp seed
-  -l, --length      : Brute-force entire pin length (experimental)
+  -l, --length      : Bruteforce entire pin length (experimental)
   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]
   -o, --output      : Write output to file
   -j, --jobs        : Number of parallel threads to use         [Auto]
@@ -80,8 +78,9 @@ Optional arguments:
   -V, --version     : Display version
 
   --mode N[,... N]  : Mode selection, comma separated           [Auto]
-  --start [mm/]yyyy : Starting date (only mode 3)             [+1 day]
-  --end   [mm/]yyyy : Ending date   (only mode 3)             [-1 day]
+  --start [mm/]yyyy : Starting date             (only mode 3) [+1 day]
+  --end   [mm/]yyyy : Ending date               (only mode 3) [-1 day]
+  -f, --force       : Bruteforce full range     (only mode 3)
 
 Miscellaneous arguments:
 
@@ -102,14 +101,17 @@ which requires a modified version of Reaver or Bully which prints the *Authentic
 The program has also a man page and a verbose help screen (`--help`) with more examples.
 
 ## -S, --dh-small
-This feature was introduced back in Reaver 1.4. It works by choosing the private key = 1, thus resulting in having the public key `--pkr` = 2. This speeds up the cracking process since the AP must do less computations to calculate the Diffie-Hellman shared secret, which is later used to derive the session keys that encrypt the current transaction. Pixiewps can exploit this feature so that the user doesn't have to input `--pkr` (it's always 2) and optionally compute the session keys, like `--authkey`, if additional arguments, `--r-nonce` and `--bssid`, are specified.
+This feature was introduced back in Reaver 1.3. It works by choosing the private key = 1, thus resulting in having the public key `--pkr` = 2. This speeds up the cracking process since the AP must do less computations to calculate the Diffie-Hellman shared secret, which is later used to derive the session keys that encrypt the current transaction. Pixiewps can exploit this feature so that the user doesn't have to input `--pkr` (it's always 2) and optionally compute the session keys, like `--authkey`, if additional arguments, `--r-nonce` and `--bssid`, are specified.
 
-It turns out some routers are buggy and do not function correctly with this feature. Some won't even be able to validate the correct PIN and the transaction will fail after M4. For this reason this feature should **never be used** in Reaver.
+It turns out some routers are buggy and do not function correctly with this feature. Some won't even be able to validate the correct PIN and the transaction will fail after M4. For this reason this feature is **deprecated** and should **never be used** in Reaver.
 
 ## -7, --m7-enc
 This option requires the attribute *encrypted settings* found in M7 when the Registrar proved knowledge of the PIN, and the Access Points, the Enrollee, sends its current network configuration.
 
 This feature can be used to crack the WPA-PSK (and WPS PIN) from a passive packet capture (e.g. sniffing a PBC session).
+
+## -f, --force
+This option is used only for mode 3. When used pixiewps will start bruteforcing from the current time and go back all the way to 0. It is conceptually identical to using `--end 01/1970` only (or `--start 01/1970` since they're interchangeable).
 
 ## Empty PIN
 The empty PIN, denoted with `<empty>` can be tested with `-p ""` in Reaver [1.6.1](https://github.com/t6x/reaver-wps-fork-t6x/releases/tag/v1.6.1) and later. It comes from a misconfiguration of the WPS pin method on some Access Points which have the pin variable set to `NULL` (or empty string).
