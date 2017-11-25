@@ -6,7 +6,7 @@ As opposed to the traditional online brute-force attack, implemented in tools li
 
 ![pixiewps_screenshot_1](https://i.imgur.com/nvS69me.png)
 
-Since version **1.4**, it can also recover the **WPA-PSK** from a complete passive capture (M1 through M7) for some devices (currently **only some devices** which work with `--mode 3`).
+Since version 1.4, it can also recover the **WPA-PSK** from a complete passive capture (M1 through M7) for some devices (currently **only some devices** which work with `--mode 3`).
 
 ![pixiewps_screenshot_2](https://i.imgur.com/qVQ8Rng.png)
 
@@ -91,7 +91,7 @@ Miscellaneous arguments:
 
 ## Usage example
 
-A common usage example is:
+The most common usage example is:
 
 ```
 pixiewps --pke ... --pkr ... --e-hash1 ... --e-hash2 ... --authkey ... --e-nonce ...
@@ -99,57 +99,46 @@ pixiewps --pke ... --pkr ... --e-hash1 ... --e-hash2 ... --authkey ... --e-nonce
 
 which requires a modified version of Reaver or Bully which prints the *Authentication Session key* (`--authkey`, `-a`). The recommended version is [reaver-wps-fork-t6x](https://github.com/t6x/reaver-wps-fork-t6x).
 
+The program has also a man page and a verbose help screen (`--help`) with more examples.
+
 ## -S, --dh-small
-This feature was introduced back in **Reaver 1.4**. It works by choosing the private key **= 1**, thus resulting in having the public key `--pkr` **= 2**. This speeds up the cracking process since the AP must do less computations to calculate the Diffie-Hellman shared secret, which is later used to derive the session keys that encrypt the current transaction. Pixiewps can exploit this feature so that the user doesn't have to input `--pkr` (it's always 2) and optionally compute the session keys, like `--authkey`, if additional arguments, `--r-nonce` and `--bssid`, are specified.
+This feature was introduced back in Reaver 1.4. It works by choosing the private key = 1, thus resulting in having the public key `--pkr` = 2. This speeds up the cracking process since the AP must do less computations to calculate the Diffie-Hellman shared secret, which is later used to derive the session keys that encrypt the current transaction. Pixiewps can exploit this feature so that the user doesn't have to input `--pkr` (it's always 2) and optionally compute the session keys, like `--authkey`, if additional arguments, `--r-nonce` and `--bssid`, are specified.
 
 It turns out some routers are buggy and do not function correctly with this feature. Some won't even be able to validate the correct PIN and the transaction will fail after M4. For this reason this feature should **never be used** in Reaver.
 
 ## -7, --m7-enc
-This option requires the attribute *encrypted settings* found in **M7** when the Registrar proved knowledge of the PIN, and the Access Points, the Enrollee, sends its current network configuration.
+This option requires the attribute *encrypted settings* found in M7 when the Registrar proved knowledge of the PIN, and the Access Points, the Enrollee, sends its current network configuration.
 
-This feature can be use to crack the WPA-PSK (and WPS PIN) from a passive packet capture (e.g. sniffing a PBC session).
+This feature can be used to crack the WPA-PSK (and WPS PIN) from a passive packet capture (e.g. sniffing a PBC session).
 
 ## Empty PIN
-The empty PIN, denoted with `<empty>` can be tested with `-p ""` in Reaver [1.6.1](https://github.com/t6x/reaver-wps-fork-t6x/releases/tag/v1.6.1) and later. It comes from a misconfiguration of the WPS pin method on some Access Points which have the pin variable set to **NULL** (or empty string).
+The empty PIN, denoted with `<empty>` can be tested with `-p ""` in Reaver [1.6.1](https://github.com/t6x/reaver-wps-fork-t6x/releases/tag/v1.6.1) and later. It comes from a misconfiguration of the WPS pin method on some Access Points which have the pin variable set to `NULL` (or empty string).
 
 ![pixiewps_screenshot_3](https://i.imgur.com/t3JYGHV.png)
 
-# Difference between PIN and PBC method
-
-The PBC, or *push-button*, method is of 2 types:
-- *physical button* on the Access Point, the PIN is always 00000000 (requires physical access to be pressed)
-- *virtual button*, in a GUI of some sort and the PIN is usually configurable via the web page of the Access Point
-
-In both cases the session must be started manually and lasts for a maximum of 120 seconds or until the first transaction is finished.
-
-In the case of PIN (also called *label method*):
-- a PIN must be supplied to the device (usually printed on the sticker on the back of Access Points)
-
-The device is **always** listening for requests, it doesn't require any user interaction to start the process.
-
-Pixiewps can crack both provided all the required data is supplied.
-
 # Supported platforms
 
-Pixiewps can be compiled and installed on a wide variety of platforms including [OpenWrt](https://openwrt.org/) / [LEDE](https://lede-project.org/) and Android. On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
+Pixiewps can be compiled and installed on a wide variety of platforms including [OpenWrt](https://openwrt.org/) / [LEDE](https://lede-project.org/) and Android.
 
-# Notes for wrappers and scripts
+On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
 
+## Notes for wrappers and scripts
 - The data in input can be formatted with one of the following byte separators: '`:`', '`-`', '` `', or without
-- The most useful tags like PIN and WPA-PSK are denoted with `[+]` or `[-]` in case of failure
+- The most useful tags like `WPS pin` and `WPA-PSK` are denoted with `[+]` or `[-]` in case of failure
 - Pixiewps returns `0` on a successful attempt
 
 # Acknowledgements
 
 - Part of the code was inspired by Bully by Brian Purcell
-- Some parts were taken from [wpa_supplicant](https://w1.fi/wpa_supplicant/) written by Jouni Malinen
+- Some files were taken from [wpa_supplicant](https://w1.fi/wpa_supplicant/) written by Jouni Malinen
 - The hashing crypto libraries were taken (and modified) from [mbed TLS](https://tls.mbed.org/)
+- Endianness detection and conversion is from [rofl0r/endianness.h](https://github.com/rofl0r/endianness.h)
 - See [contributors](https://github.com/wiire-a/pixiewps/graphs/contributors) for a list of everyone that has contributed
-- Huge thanks to `kcdtv` and `rofl0r` for helping and testing
+- Huge thanks to `kcdtv`, `rofl0r` and `binarymaster` for helping and testing
 - Special thanks to `soxrok2212`, `datahead`, `t6_x`, `aanarchyy` and the [Kali Linux](https://www.kali.org/) community
 
 # References
 
-Pixiewps is based on the work of Dominique Bongard:
-- [Video presentation](http://video.adm.ntnu.no/pres/549931214e18d)
-- [Slide presentation](http://archive.hack.lu/2014/Hacklu2014_offline_bruteforce_attack_on_wps.pdf)
+Pixiewps is based on the work of Dominique Bongard ([@Reversity](https://twitter.com/reversity)):
+- [Offline bruteforce attack on WiFi Protected Setup](http://archive.hack.lu/2014/Hacklu2014_offline_bruteforce_attack_on_wps.pdf) (slides)
+- [WPS Insecurity](http://video.adm.ntnu.no/pres/549931214e18d) (video presentation at NTNU)
