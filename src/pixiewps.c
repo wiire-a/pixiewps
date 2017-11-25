@@ -1367,7 +1367,10 @@ usage_err:
 						printf(" (%s UTC)", buffer);
 					}
 					else {
-						printf("\n [*] Seed N1:  0x%08x", nonce_seed);
+						if (found_p_mode = RT && nonce_seed == 0)
+							printf("\n [*] Seed N1:  -");
+						else
+							printf("\n [*] Seed N1:  0x%08x", nonce_seed);
 						printf("\n [*] Seed ES1: 0x%08x", s1_seed);
 						printf("\n [*] Seed ES2: 0x%08x", s2_seed);
 					}
