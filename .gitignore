@@ -1,0 +1,11 @@
+# Files
+*~
+src/pixiewps
+
+# Extensions
+*.o
+*.d
+*.a
+*.so
+*.out
+*.exe
