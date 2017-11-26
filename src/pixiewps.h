@@ -246,6 +246,8 @@ char v_usage[] =
 	" [?] pixiewps -e <pke> -r <pkr> -n <e-nonce> -m <r-nonce> -b <e-bssid> -7 <enc7> -5 <enc5> -s <e-hash1> -z <e-hash2> --mode 3\n"
 	"\n";
 
+#define STR_CONTRIBUTE "[@] Looks like you have some interesting data! Please consider contributing with your data to improve pixiewps. Follow the instructions on http://0x0.st/tm - Thank you!"
+
 /* One digit comma separated number parsing */
 static inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint8_t max_digit)
 {
