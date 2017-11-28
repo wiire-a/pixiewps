@@ -104,6 +104,9 @@ struct global {
 	uint8_t *m7_encr;
 	unsigned int m5_encr_len;
 	unsigned int m7_encr_len;
+	uint32_t nonce_seed;
+	uint32_t s1_seed;
+	uint32_t s2_seed;
 	time_t start;
 	time_t end;
 	uint8_t small_dh_keys;
