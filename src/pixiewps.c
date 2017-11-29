@@ -1498,62 +1498,6 @@ uint_fast8_t crack(struct global *g, char *pin)
 	char mask[5];
 	uint_fast8_t found = 0;
 
-	if (wps->anylength) {
-
-		/* Brute-force entire pin space */
-		for (unsigned int i = 0; i < 5; i++) {
-			unsigned int count = int_pow(10, i);
-
-			first_half = 0;
-			while (first_half < count) {
-				uint_to_char_array(first_half, i, s_pin);
-
-				if (!check_pin_half(s_pin, wps->psk1, wps->e_s1, wps, wps->e_hash1)) {
-					first_half++;
-				}
-				else {
-					if (i == 0) {
-						pin[0] = '\0';
-					}
-					else {
-						snprintf((char *)&mask, 5, "%%0%uu", i);
-						snprintf(pin, WPS_PIN_LEN / 2 + 1, mask, first_half);
-					}
-					break;
-				}
-			}
-
-			if (first_half < count) {
-				for (unsigned int j = 0; j < 5; j++) {
-					count = int_pow(10, j);
-
-					second_half = 0;
-					while (second_half < count) {
-						uint_to_char_array(second_half, j, s_pin);
-						if (!check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2)) {
-							second_half++;
-						}
-						else {
-							if (j > 0) {
-								snprintf((char *)&mask, 5, "%%0%uu", j);
-								snprintf(pin + WPS_PIN_LEN / 2, WPS_PIN_LEN / 2 + 1, mask, second_half);
-							}
-
-							/* Second half found */
-							found = 1;
-							break;
-						}
-					}
-				}
-
-				/* First half found, but not second */
-				break;
-			}
-		}
-
-		return !found;
-	}
-
 	/* Check for empty pin (length = 0) */
 	if (check_empty_pin_half(wps->e_s1, wps, wps->e_hash1) && check_empty_pin_half(wps->e_s2, wps, wps->e_hash2)) {
 	
