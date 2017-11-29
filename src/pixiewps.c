@@ -1025,7 +1025,7 @@ usage_err:
 	wps->psk1 = malloc(WPS_HASH_LEN); if (!wps->psk1) goto memory_err;
 	wps->psk2 = malloc(WPS_HASH_LEN); if (!wps->psk2) goto memory_err;
 	wps->empty_psk = malloc(WPS_HASH_LEN); if (!wps->empty_psk) goto memory_err;
-	
+
 	empty_pin_hmac(wps);
 
 	uint_fast8_t k = 0;
@@ -1474,7 +1474,7 @@ static int check_pin_half(const uint8_t pinhalf[4], uint8_t *psk, const uint8_t 
 {
 	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
 	uint8_t result[WPS_HASH_LEN];
-	
+
 	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, pinhalf, 4, psk);
 	memcpy(buffer, es, WPS_SECRET_NONCE_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN, psk, WPS_PSK_LEN);
@@ -1490,7 +1490,7 @@ static int check_empty_pin_half(const uint8_t *es, struct global *wps, const uin
 {
 	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
 	uint8_t result[WPS_HASH_LEN];
-	
+
 	memcpy(buffer, es, WPS_SECRET_NONCE_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->empty_psk, WPS_PSK_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
@@ -1509,10 +1509,10 @@ static int crack_first_half(struct global *wps, char *pin, const uint8_t *es1_ov
 	if (check_empty_pin_half(es1, wps, wps->e_hash1)) {
 		return -1;
 	}
-		
+
 	unsigned first_half;
 	uint8_t psk[WPS_HASH_LEN];
-	
+
 	for (first_half = 0; first_half < 10000; first_half++) {
 		uint_to_char_array(first_half, 4, pin);
 		if (check_pin_half(pin, psk, es1, wps, wps->e_hash1)) {
@@ -1521,7 +1521,7 @@ static int crack_first_half(struct global *wps, char *pin, const uint8_t *es1_ov
 			return 1;
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -1530,11 +1530,11 @@ static int crack_second_half(struct global *wps, char *pin)
 {
 	if (!pin[0] && check_empty_pin_half(wps->e_s2, wps, wps->e_hash2))
 		return 1;
-		
+
 	unsigned second_half, first_half = atoi(pin);
 	char *s_pin = pin + strlen(pin);
 	uint8_t psk[WPS_HASH_LEN];
-	
+
 	for (second_half = 0; second_half < 1000; second_half++) {
 		unsigned int checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
 		unsigned int c_second_half = second_half * 10 + checksum_digit;
@@ -1545,7 +1545,7 @@ static int crack_second_half(struct global *wps, char *pin)
 			return 1;
 		}
 	}
-	
+
 	for (second_half = 0; second_half < 10000; second_half++) {
 
 		/* If already tested skip */
@@ -1560,7 +1560,7 @@ static int crack_second_half(struct global *wps, char *pin)
 			return 1;
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -1568,5 +1568,4 @@ static int crack_second_half(struct global *wps, char *pin)
 static int crack(struct global *wps, char *pin)
 {
 	return !(crack_first_half(wps, pin, 0) && crack_second_half(wps, pin));
-		
 }
