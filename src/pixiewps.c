@@ -50,7 +50,7 @@ uint32_t ecos_rand_simplest(uint32_t *seed);
 uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
 
-static int crack_first_half(struct global *wps, char *pin);
+static int crack_first_half(struct global *wps, char *pin, const uint8_t *es1_override);
 static int crack_second_half(struct global *wps, char *pin);
 static int crack(struct global *wps, char *pin);
 
@@ -310,15 +310,16 @@ static void rtl_nonce_fill(uint8_t *nonce, uint32_t seed)
 	}
 }
 
+static int find_rtl_es1(struct global *wps, char *pin, uint8_t *nonce_buf, uint32_t seed)
+{
+	rtl_nonce_fill(nonce_buf, seed);
+	
+	return crack_first_half(wps, pin, nonce_buf);
+}
+
 static int find_rtl_es_dir(struct global *wps, char *pin, int dir)
 {
-	uint_fast8_t found_p_mode = NONE;
-	struct glibc_prng glibc_prng;
-
-	int32_t res;
-	int i = 0; /* Must hold MODE3_TRIES */
-	uint8_t tmp_s_nonce[16];
-	int break_cond = (MODE3_TRIES + 1) * dir;
+	int i, break_cond = (MODE3_TRIES + 1) * dir;
 
 	if (dir == 1)
 		DEBUG_PRINT("Trying forward in time");
@@ -326,14 +327,15 @@ static int find_rtl_es_dir(struct global *wps, char *pin, int dir)
 		DEBUG_PRINT("Trying backwards in time");
 		
 	for (i = 0; i != break_cond; i += dir) {
-		rtl_nonce_fill(wps->e_s1, wps->nonce_seed + i);
-
-		DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->nonce_seed + i);
-		DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
+		uint8_t nonce_buf[WPS_SECRET_NONCE_LEN];
 		
-		if (crack_first_half(wps, pin)) {
+		DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->nonce_seed + i);
+	
+		if (find_rtl_es1(wps, pin, nonce_buf, wps->nonce_seed + i)) {
 			DEBUG_PRINT("First pin half found");
+			memcpy(wps->e_s1, nonce_buf, sizeof nonce_buf);
 			wps->s1_seed = wps->nonce_seed + i;
+			
 			char pin_copy[WPS_PIN_LEN + 1];
 			strcpy(pin_copy, pin);
 			int j;
@@ -1482,11 +1484,12 @@ static int check_empty_pin_half(const uint8_t *es, struct global *wps, const uin
 }
 
 /* returns 1 if numeric pin half found, -1 if empty pin found, 0 if not found */
-static int crack_first_half(struct global *wps, char *pin)
+static int crack_first_half(struct global *wps, char *pin, const uint8_t *es1_override)
 {
 	*pin = 0;
+	const uint8_t *es1 = es1_override ? es1_override : wps->e_s1;
 
-	if (check_empty_pin_half(wps->e_s1, wps, wps->e_hash1)) {
+	if (check_empty_pin_half(es1, wps, wps->e_hash1)) {
 		return -1;
 	}
 		
@@ -1494,7 +1497,7 @@ static int crack_first_half(struct global *wps, char *pin)
 	
 	for (first_half = 0; first_half < 10000; first_half++) {
 		uint_to_char_array(first_half, 4, pin);
-		if (check_pin_half(pin, wps->psk1, wps->e_s1, wps, wps->e_hash1)) {
+		if (check_pin_half(pin, wps->psk1, es1, wps, wps->e_hash1)) {
 			pin[4] = 0; /* make sure pin string is zero-terminated */
 			return 1;
 		}
@@ -1540,6 +1543,6 @@ static int crack_second_half(struct global *wps, char *pin)
 /* PIN cracking attempt - returns 0 for success, 1 for failure */
 static int crack(struct global *wps, char *pin)
 {
-	return !(crack_first_half(wps, pin) && crack_second_half(wps, pin));
+	return !(crack_first_half(wps, pin, 0) && crack_second_half(wps, pin));
 		
 }
