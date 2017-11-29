@@ -345,7 +345,7 @@ static int find_rtl_es_dir(struct global *wps, char *pin, int dir)
 				DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s1_seed + j);
 				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
 				if (crack_second_half(wps, pin)) {
-					wps->s2_seed = wps->s2_seed + j;
+					wps->s2_seed = wps->s1_seed + j;
 					DEBUG_PRINT("Pin found");
 					return RTL819x;
 				}
