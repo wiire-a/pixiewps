@@ -1457,6 +1457,37 @@ int int_pow(int a, int exp)
 	return r;
 }
 
+/* return non-zero if pin half is correct, zero otherwise */
+static int check_pin_half(const uint8_t pinhalf[4], uint8_t *psk, const uint8_t *es, struct global *wps, const uint8_t *ehash)
+{
+	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
+	uint8_t result[WPS_HASH_LEN];
+	
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, pinhalf, 4, psk);
+	memcpy(buffer, es, WPS_SECRET_NONCE_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN, psk, WPS_PSK_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, sizeof buffer, result);
+
+	return !memcmp(result, ehash, WPS_HASH_LEN);
+}
+
+/* return non-zero if pin half is correct, zero otherwise */
+static int check_empty_pin_half(const uint8_t *es, struct global *wps, const uint8_t *ehash)
+{
+	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
+	uint8_t result[WPS_HASH_LEN];
+	
+	memcpy(buffer, es, WPS_SECRET_NONCE_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->empty_psk, WPS_PSK_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, sizeof buffer, result);
+
+	return !memcmp(result, ehash, WPS_HASH_LEN);
+}
+
 /* PIN cracking attempt */
 uint_fast8_t crack(struct global *g, char *pin)
 {
@@ -1467,9 +1498,6 @@ uint_fast8_t crack(struct global *g, char *pin)
 	char mask[5];
 	uint_fast8_t found = 0;
 
-	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
-	uint8_t result[WPS_HASH_LEN];
-
 	if (wps->anylength) {
 
 		/* Brute-force entire pin space */
@@ -1479,15 +1507,8 @@ uint_fast8_t crack(struct global *g, char *pin)
 			first_half = 0;
 			while (first_half < count) {
 				uint_to_char_array(first_half, i, s_pin);
-				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, i, wps->psk1);
-				memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-						WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
 
-				if (memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
+				if (!check_pin_half(s_pin, wps->psk1, wps->e_s1, wps, wps->e_hash1)) {
 					first_half++;
 				}
 				else {
@@ -1509,15 +1530,7 @@ uint_fast8_t crack(struct global *g, char *pin)
 					second_half = 0;
 					while (second_half < count) {
 						uint_to_char_array(second_half, j, s_pin);
-						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, j, wps->psk2);
-						memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
-						memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
-						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
-						memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-						hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-								WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
-
-						if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+						if (!check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2)) {
 							second_half++;
 						}
 						else {
@@ -1542,43 +1555,17 @@ uint_fast8_t crack(struct global *g, char *pin)
 	}
 
 	/* Check for empty pin (length = 0) */
-	memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
-	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->empty_psk, WPS_PSK_LEN);
-	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
-	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-			WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
-
-	if (!memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
-
-		/* Second half must be empty too */
-		memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
-		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->empty_psk, WPS_PSK_LEN);
-		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
-		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-				WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
-
-		if (!memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
-
-			/* Empty pin detected */
-			pin[0] = '\0';
-			return 0;
-		}
+	if (check_empty_pin_half(wps->e_s1, wps, wps->e_hash1) && check_empty_pin_half(wps->e_s2, wps, wps->e_hash2)) {
+	
+		/* Empty pin detected */
+		pin[0] = '\0';
+		return 0;
 	}
 
 	/* Brute-force numeric pins */
 	while (first_half < 10000) {
 		uint_to_char_array(first_half, 4, s_pin);
-		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk1);
-		memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
-		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
-		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
-		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-				WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
-
-		if (memcmp(result, wps->e_hash1, WPS_HASH_LEN))
+		if (!check_pin_half(s_pin, wps->psk1, wps->e_s1, wps, wps->e_hash1))
 			first_half++;
 		else
 			break;
@@ -1591,15 +1578,7 @@ uint_fast8_t crack(struct global *g, char *pin)
 			unsigned int checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
 			unsigned int c_second_half = second_half * 10 + checksum_digit;
 			uint_to_char_array(c_second_half, 4, s_pin);
-			hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk2);
-			memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
-			memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
-			memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
-			memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-			hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-					WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
-
-			if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+			if (!check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2)) {
 				second_half++;
 			}
 			else {
@@ -1622,15 +1601,7 @@ uint_fast8_t crack(struct global *g, char *pin)
 				}
 
 				uint_to_char_array(second_half, 4, s_pin);
-				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, s_pin, 4, wps->psk2);
-				memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
-				memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-				hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
-						WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2, result);
-
-				if (memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
+				if (!check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2)) {
 					second_half++;
 				}
 				else {
