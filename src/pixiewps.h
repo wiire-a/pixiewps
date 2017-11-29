@@ -44,6 +44,10 @@
 
 #include "utils.h"
 
+#ifndef WPS_PIN_LEN
+#define WPS_PIN_LEN           8
+#endif
+
 #if defined(DEBUG)
 # define DEBUG_PRINT(fmt, args...) do { fprintf(stderr, "\n [DEBUG] %s:%d:%s(): " fmt, \
 	__FILE__, __LINE__, __func__, ##args); fflush(stdout); } while (0)
@@ -83,6 +87,7 @@ const uint8_t rtl_rnd_seed[] = {
 };
 
 struct global {
+	uint8_t pin[WPS_PIN_LEN + 1];
 	uint8_t *pke;
 	uint8_t *pkr;
 	uint8_t *e_key;
