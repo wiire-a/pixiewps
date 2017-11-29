@@ -357,12 +357,6 @@ static int find_rtl_es_dir(struct global *wps, char *pin, int dir)
 				found_p_mode = RTL819x;
 				DEBUG_PRINT("Pin found");
 			}
-			else if (r2 == MEM_ERROR) {
-				return -MEM_ERROR;
-			}
-		}
-		else if (r == MEM_ERROR) {
-			return -MEM_ERROR;
 		}
 	} while (found_p_mode == NONE && i != break_cond);
 
@@ -1039,9 +1033,6 @@ usage_err:
 				found_p_mode = RT;
 				DEBUG_PRINT("Pin found");
 			}
-			else if (r == MEM_ERROR) {
-				goto memory_err;
-			}
 
 			if (!found_p_mode) {
 				init_crack_jobs(wps, RT);
@@ -1073,9 +1064,6 @@ usage_err:
 					if (r == PIN_FOUND) {
 						found_p_mode = RT;
 						DEBUG_PRINT("Pin found");
-					}
-					else if (r == MEM_ERROR) {
-						goto memory_err;
 					}
 				}
 			}
@@ -1122,9 +1110,6 @@ usage_err:
 					found_p_mode = ECOS_SIMPLE;
 					DEBUG_PRINT("Pin found");
 				}
-				else if (r == MEM_ERROR) {
-					goto memory_err;
-				}
 			}
 
 		/* 3 */
@@ -1146,9 +1131,6 @@ usage_err:
 			if (r == PIN_FOUND) {
 				found_p_mode = RTL819x;
 				DEBUG_PRINT("Pin found");
-			}
-			else if (r == MEM_ERROR) {
-				goto memory_err;
 			}
 
 			if (found_p_mode == NONE) {
@@ -1188,9 +1170,6 @@ usage_err:
 
 						if (wps->nonce_seed) { /* Seed found */
 							found_p_mode = find_rtl_es(wps, pin);
-							if (found_p_mode == -MEM_ERROR)
-								goto memory_err;
-
 						}
 
 						if (found_p_mode == NONE && !wps->bruteforce) {
@@ -1248,9 +1227,6 @@ usage_err:
 					found_p_mode = ECOS_SIMPLEST;
 					DEBUG_PRINT("Pin found");
 				}
-				else if (r == MEM_ERROR) {
-					goto memory_err;
-				}
 			}
 
 		/* 5 */
@@ -1295,9 +1271,6 @@ usage_err:
 				if (r == PIN_FOUND) {
 					found_p_mode = ECOS_KNUTH;
 					DEBUG_PRINT("Pin found");
-				}
-				else if (r == MEM_ERROR) {
-					goto memory_err;
 				}
 			}
 
@@ -1486,15 +1459,8 @@ uint_fast8_t crack(struct global *g, char *pin)
 	char mask[5];
 	uint_fast8_t found = 0;
 
-	uint8_t *buffer = malloc(WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2);
-	if (!buffer)
-		return MEM_ERROR;
-
-	uint8_t *result = malloc(WPS_HASH_LEN);
-	if (!result) {
-		free(buffer);
-		return MEM_ERROR;
-	}
+	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
+	uint8_t result[WPS_HASH_LEN];
 
 	if (wps->anylength) {
 
@@ -1564,9 +1530,6 @@ uint_fast8_t crack(struct global *g, char *pin)
 			}
 		}
 
-		free(buffer);
-		free(result);
-
 		return !found;
 	}
 
@@ -1593,9 +1556,6 @@ uint_fast8_t crack(struct global *g, char *pin)
 		if (!memcmp(result, wps->e_hash2, WPS_HASH_LEN)) {
 
 			/* Empty pin detected */
-			free(buffer);
-			free(result);
-
 			pin[0] = '\0';
 			return 0;
 		}
@@ -1674,9 +1634,6 @@ uint_fast8_t crack(struct global *g, char *pin)
 			}
 		}
 	}
-
-	free(buffer);
-	free(result);
 
 	snprintf(pin, WPS_PIN_LEN + 1, "%08u", first_half * 10000 + second_half);
 
