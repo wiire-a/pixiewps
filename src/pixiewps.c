@@ -376,6 +376,11 @@ static int find_rtl_es(struct global *wps, char *pin)
 	return found_p_mode;
 }
 
+static void empty_pin_hmac(struct global *wps)
+{
+	/* since the empty pin psk is static once initialized, we calculate it only once */
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->empty_psk);
+}
 
 int main(int argc, char **argv)
 {
@@ -1006,6 +1011,9 @@ usage_err:
 	/* Allocating memory for digests */
 	wps->psk1 = malloc(WPS_HASH_LEN); if (!wps->psk1) goto memory_err;
 	wps->psk2 = malloc(WPS_HASH_LEN); if (!wps->psk2) goto memory_err;
+	wps->empty_psk = malloc(WPS_HASH_LEN); if (!wps->empty_psk) goto memory_err;
+	
+	empty_pin_hmac(wps);
 
 	uint_fast8_t k = 0;
 	uint_fast8_t found_p_mode = NONE;
@@ -1534,9 +1542,8 @@ uint_fast8_t crack(struct global *g, char *pin)
 	}
 
 	/* Check for empty pin (length = 0) */
-	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->psk1);
 	memcpy(buffer, wps->e_s1, WPS_SECRET_NONCE_LEN);
-	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk1, WPS_PSK_LEN);
+	memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->empty_psk, WPS_PSK_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,
@@ -1545,9 +1552,8 @@ uint_fast8_t crack(struct global *g, char *pin)
 	if (!memcmp(result, wps->e_hash1, WPS_HASH_LEN)) {
 
 		/* Second half must be empty too */
-		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->psk2);
 		memcpy(buffer, wps->e_s2, WPS_SECRET_NONCE_LEN);
-		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->psk2, WPS_PSK_LEN);
+		memcpy(buffer + WPS_SECRET_NONCE_LEN, wps->empty_psk, WPS_PSK_LEN);
 		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 		memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
 		hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer,

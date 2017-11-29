@@ -93,6 +93,7 @@ struct global {
 	uint8_t *r_nonce;
 	uint8_t *psk1;
 	uint8_t *psk2;
+	uint8_t *empty_psk;
 	uint8_t *dhkey;
 	uint8_t *kdk;
 	uint8_t *wrapkey;
