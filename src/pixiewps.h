@@ -45,12 +45,12 @@
 #include "utils.h"
 
 #if defined(DEBUG)
-# define DEBUG_PRINT(fmt, args...); fprintf(stderr, "\n [DEBUG] %s:%d:%s(): " fmt, \
-	__FILE__, __LINE__, __func__, ##args); fflush(stdout);
-# define DEBUG_PRINT_ARRAY(b, l); byte_array_print(b, l); fflush(stdout);
+# define DEBUG_PRINT(fmt, args...) do { fprintf(stderr, "\n [DEBUG] %s:%d:%s(): " fmt, \
+	__FILE__, __LINE__, __func__, ##args); fflush(stdout); } while (0)
+# define DEBUG_PRINT_ARRAY(b, l) do { byte_array_print(b, l); fflush(stdout); } while (0)
 #else
-# define DEBUG_PRINT(fmt, args...)
-# define DEBUG_PRINT_ARRAY(b, l)
+# define DEBUG_PRINT(fmt, args...) do {} while (0)
+# define DEBUG_PRINT_ARRAY(b, l) do {} while (0)
 #endif
 
 uint_fast8_t p_mode[MODE_LEN] = { 0 };
