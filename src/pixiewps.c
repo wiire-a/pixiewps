@@ -46,9 +46,9 @@
 #include "random/glibc_random.c"
 #include "random/glibc_random_lazy.c"
 
-uint32_t ecos_rand_simplest(uint32_t *seed);
-uint32_t ecos_rand_simple(uint32_t *seed);
-uint32_t ecos_rand_knuth(uint32_t *seed);
+static uint32_t ecos_rand_simplest(uint32_t *seed);
+static uint32_t ecos_rand_simple(uint32_t *seed);
+static uint32_t ecos_rand_knuth(uint32_t *seed);
 
 static int crack_first_half(struct global *wps, char *pin, const uint8_t *es1_override);
 static int crack_second_half(struct global *wps, char *pin);
@@ -1433,14 +1433,14 @@ usage_err:
 }
 
 /* Simplest */
-uint32_t ecos_rand_simplest(uint32_t *seed)
+static uint32_t ecos_rand_simplest(uint32_t *seed)
 {
 	*seed = (*seed * 1103515245) + 12345; /* Permutate seed */
 	return *seed;
 }
 
 /* Simple, Linear congruential generator */
-uint32_t ecos_rand_simple(uint32_t *seed)
+static uint32_t ecos_rand_simple(uint32_t *seed)
 {
 	uint32_t s = *seed;
 	uint32_t uret;
@@ -1457,7 +1457,7 @@ uint32_t ecos_rand_simple(uint32_t *seed)
 }
 
 /* Mersenne-Knuth */
-uint32_t ecos_rand_knuth(uint32_t *seed)
+static uint32_t ecos_rand_knuth(uint32_t *seed)
 {
 	#define MM 2147483647 /* Mersenne prime */
 	#define AA 48271      /* This does well in the spectral test */
@@ -1472,7 +1472,7 @@ uint32_t ecos_rand_knuth(uint32_t *seed)
 }
 
 /* Simple power function */
-int int_pow(int a, int exp)
+static int int_pow(int a, int exp)
 {
 	if (exp <= 0) return 1;
 	int r = a;
