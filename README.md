@@ -43,7 +43,7 @@ cd pixiewps*/
 cd src/
 make
 ```
-Optionally, you can run make OPENSSL=1 to use faster OpenSSL SHA256 functions.
+Optionally, you can run `make OPENSSL=1` to use faster OpenSSL SHA256 functions.
 
 **Install**
 
