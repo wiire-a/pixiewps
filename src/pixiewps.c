@@ -512,7 +512,7 @@ memory_err:
 				wps->bruteforce = 1;
 				break;
 			case 'l':
-				wps->anylength = 1;
+				//wps->anylength = 1;
 				break;
 			case 'o':
 				if (!freopen(optarg, "w", stdout)) {

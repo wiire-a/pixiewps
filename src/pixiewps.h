@@ -146,7 +146,7 @@ char usage[] =
 	"   -m, --r-nonce     : Registrar nonce\n"
 	"   -b, --e-bssid     : Enrollee BSSID\n"
 //	"   -S, --dh-small    : Small Diffie-Hellman keys (PKr not needed)  [No]\n"
-	"   -l, --length      : Bruteforce entire pin length (experimental)\n"
+//	"   -l, --length      : Bruteforce entire pin length (experimental)\n"
 	"   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]\n"
 	"   -o, --output      : Write output to file\n"
 	"   -j, --jobs        : Number of parallel threads to use         [Auto]\n"

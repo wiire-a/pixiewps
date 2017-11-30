@@ -69,7 +69,6 @@ Optional arguments:
 
   -m, --r-nonce     : Registrar nonce
   -b, --e-bssid     : Enrollee BSSID
-  -l, --length      : Bruteforce entire pin length (experimental)
   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]
   -o, --output      : Write output to file
   -j, --jobs        : Number of parallel threads to use         [Auto]
