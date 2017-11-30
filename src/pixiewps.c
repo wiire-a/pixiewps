@@ -265,7 +265,7 @@ static void init_crack_jobs(struct global *wps, int mode)
 	uint32_t curr = (mode == RTL819x) ? wps->start : 0;
 	int32_t add = (mode == RTL819x) ? -SEEDS_PER_JOB_BLOCK : SEEDS_PER_JOB_BLOCK;
 	for (i = 0; i < wps->jobs; i++) {
-		job_control.crack_jobs[i].start = (mode == -RTL819x) ? i + 1 : curr;
+		job_control.crack_jobs[i].start = (mode == -RTL819x) ? (uint32_t)i + 1 : curr;
 		setup_thread(i);
 		curr += add;
 	}
@@ -1482,12 +1482,12 @@ static int int_pow(int a, int exp)
 }
 
 /* return non-zero if pin half is correct, zero otherwise */
-static int check_pin_half(const uint8_t pinhalf[4], uint8_t *psk, const uint8_t *es, struct global *wps, const uint8_t *ehash)
+static int check_pin_half(const char pinhalf[4], uint8_t *psk, const uint8_t *es, struct global *wps, const uint8_t *ehash)
 {
 	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
 	uint8_t result[WPS_HASH_LEN];
 
-	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, pinhalf, 4, psk);
+	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *)pinhalf, 4, psk);
 	memcpy(buffer, es, WPS_SECRET_NONCE_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN, psk, WPS_PSK_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);

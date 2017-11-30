@@ -87,7 +87,7 @@ const uint8_t rtl_rnd_seed[] = {
 };
 
 struct global {
-	uint8_t pin[WPS_PIN_LEN + 1];
+	char pin[WPS_PIN_LEN + 1];
 	uint8_t *pke;
 	uint8_t *pkr;
 	uint8_t *e_key;

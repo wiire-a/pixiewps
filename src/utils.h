@@ -128,7 +128,7 @@ int get_int(char *in, int *out)
 
 unsigned int bit_revert(unsigned int v)
 {
-	int i;
+	size_t i;
 	unsigned int lsb, n = 0;
 	for (i = 0; i < sizeof(unsigned int) * 8; i++) {
 		lsb = v & 1;
@@ -241,7 +241,7 @@ unsigned long get_elapsed_ms(struct timeval *start, struct timeval *end)
 }
 
 /* Converts an unsigned integer to a char array without termination */
-static inline void uint_to_char_array(unsigned int num, unsigned int len, uint8_t *dst)
+static inline void uint_to_char_array(unsigned int num, unsigned int len, char *dst)
 {
 	unsigned int mul = 1;
 	while (len--) {
