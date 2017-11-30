@@ -25,9 +25,9 @@
 #include "mbedtls/md_internal.h"
 #include "mbedtls/sha256.h"
 
-#define sha256(i, l, d) mbedtls_sha256(i, l, d, 0)
+#define sha256(i, l, d) sha256_full(i, l, d)
 #define hmac_sha256(k, l, i, n, o) \
-	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), k, l, i, n, o)
+	hmac_sha256_full(k, l, i, n, o)
 
 #define u8  uint8_t
 #define u16	uint16_t

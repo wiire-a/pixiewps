@@ -1,12 +1,20 @@
-CFLAGS ?= -std=c99 -O3
+CFLAGS = -std=c99 -O3
+
+LIBS   = -lpthread
+ifeq ($(OPENSSL),1)
+LIBS += -lcrypto
+CFLAGS += -DUSE_OPENSSL
+else
+CRYPTO = mbedtls/sha256.c mbedtls/md.c mbedtls/md_wrap.c
+endif
+
+PREFIX = /usr
+BINDIR = $(PREFIX)/bin
 
 TARGET = pixiewps
-CRYPTO = mbedtls/sha256.c mbedtls/md.c mbedtls/md_wrap.c
 SOURCE = $(TARGET).c $(CRYPTO)
-LIBS   = -lpthread
 
-PREFIX ?= /usr
-BINDIR = $(PREFIX)/bin
+-include config.mak
 
 all:
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)

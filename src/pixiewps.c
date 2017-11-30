@@ -38,6 +38,7 @@
 #include "pixiewps.h"
 #include "crypto/crypto_internal-modexp.c"
 #include "crypto/aes-cbc.c"
+#include "crypto/hmac_sha256.c"
 #include "utils.h"
 #include "wps.h"
 #include "version.h"
@@ -1482,17 +1483,17 @@ static int int_pow(int a, int exp)
 }
 
 /* return non-zero if pin half is correct, zero otherwise */
-static int check_pin_half(const char pinhalf[4], uint8_t *psk, const uint8_t *es, struct global *wps, const uint8_t *ehash)
+static int check_pin_half(const struct hmac_ctx *hctx, const char pinhalf[4], uint8_t *psk, const uint8_t *es, struct global *wps, const uint8_t *ehash)
 {
 	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
 	uint8_t result[WPS_HASH_LEN];
 
-	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, (unsigned char *)pinhalf, 4, psk);
+	hmac_sha256_yield(hctx, pinhalf, 4, psk);
 	memcpy(buffer, es, WPS_SECRET_NONCE_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN, psk, WPS_PSK_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN, wps->pkr, WPS_PKEY_LEN);
-	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, buffer, sizeof buffer, result);
+	hmac_sha256_yield(hctx, buffer, sizeof buffer, result);
 
 	return !memcmp(result, ehash, WPS_HASH_LEN);
 }
@@ -1525,10 +1526,12 @@ static int crack_first_half(struct global *wps, char *pin, const uint8_t *es1_ov
 
 	unsigned first_half;
 	uint8_t psk[WPS_HASH_LEN];
+	struct hmac_ctx hc;
+	hmac_sha256_init(&hc, wps->authkey, WPS_AUTHKEY_LEN);
 
 	for (first_half = 0; first_half < 10000; first_half++) {
 		uint_to_char_array(first_half, 4, pin);
-		if (check_pin_half(pin, psk, es1, wps, wps->e_hash1)) {
+		if (check_pin_half(&hc, pin, psk, es1, wps, wps->e_hash1)) {
 			pin[4] = 0; /* make sure pin string is zero-terminated */
 			memcpy(wps->psk1, psk, sizeof psk);
 			return 1;
@@ -1549,12 +1552,15 @@ static int crack_second_half(struct global *wps, char *pin)
 	unsigned second_half, first_half = atoi(pin);
 	char *s_pin = pin + strlen(pin);
 	uint8_t psk[WPS_HASH_LEN];
+	struct hmac_ctx hc;
+	hmac_sha256_init(&hc, wps->authkey, WPS_AUTHKEY_LEN);
+
 
 	for (second_half = 0; second_half < 1000; second_half++) {
 		unsigned int checksum_digit = wps_pin_checksum(first_half * 1000 + second_half);
 		unsigned int c_second_half = second_half * 10 + checksum_digit;
 		uint_to_char_array(c_second_half, 4, s_pin);
-		if (check_pin_half(s_pin, psk, wps->e_s2, wps, wps->e_hash2)) {
+		if (check_pin_half(&hc, s_pin, psk, wps->e_s2, wps, wps->e_hash2)) {
 			memcpy(wps->psk2, psk, sizeof psk);
 			pin[8] = 0;
 			return 1;
@@ -1569,7 +1575,7 @@ static int crack_second_half(struct global *wps, char *pin)
 		}
 
 		uint_to_char_array(second_half, 4, s_pin);
-		if (check_pin_half(s_pin, psk, wps->e_s2, wps, wps->e_hash2)) {
+		if (check_pin_half(&hc, s_pin, psk, wps->e_s2, wps, wps->e_hash2)) {
 			memcpy(wps->psk2, psk, sizeof psk);
 			pin[8] = 0; /* make sure pin string is zero-terminated */
 			return 1;
