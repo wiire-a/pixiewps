@@ -49,7 +49,7 @@
 #endif
 
 #if defined(DEBUG)
-# define DEBUG_PRINT(fmt, args...) do { fprintf(stderr, "\n [DEBUG] %s:%d:%s(): " fmt, \
+# define DEBUG_PRINT(fmt, args...) do { printf("\n [DEBUG] %s:%d:%s(): " fmt, \
 	__FILE__, __LINE__, __func__, ##args); fflush(stdout); } while (0)
 # define DEBUG_PRINT_ARRAY(b, l) do { byte_array_print(b, l); fflush(stdout); } while (0)
 #else
