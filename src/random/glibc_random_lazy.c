@@ -51,11 +51,8 @@ static void glibc_lazyseed(struct glibc_lazyprng *prng, uint32_t seed)
 	uint32_t *state = prng->state;
 	uint32_t i = 0;
 	state[i++] = seed;
-	for ( ; i < 31; i++) {
-		state[i] = (16807LL * state[i - 1]) % 2147483647;
-		if (state[i] & 0x80000000)  /* < 0 */
-			state[i] += 2147483647;
-	}
+	for ( ; i < 31; i++)
+		state[i] = (16807LL * state[i - 1]) % 0x7fffffff;
 	for (i = 31; i < 34;          i++) state[i] = state[i - 31];
 	for (i = 34; i < 344 - 3 + 1; i++) state[i] = state[i - 31] + state[i - 3];
 }
