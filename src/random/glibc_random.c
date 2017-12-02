@@ -52,8 +52,17 @@ static void glibc_seed(struct glibc_prng *prng, uint32_t seed)
 	uint32_t *state = prng->state;
 	prng->index = 344;
 	state[i++] = seed;
-	for ( ; i < 31; i++)
-		state[i] = (16807LL * state[i - 1]) % 0x7fffffff;
+	for ( ; i < 31; i++) {
+
+		/* This does: state[i] = (16807LL * state[i - 1]) % 0x7fffffff
+		   using the sum of digits method which works for mod N, base N+1 */
+		const uint64_t p = 16807ULL * state[i - 1];
+		const uint64_t m = (p >> 31) + (p & 0x7fffffff);
+
+		/* The result might still not fit in 31 bits, if not, repeat
+		   (conditional seems to make it slighlty faster) */
+		state[i] = (m & 0xffffffff80000000) ? ((m >> 31) + (m & 0x7fffffff)) : m;
+	}
 	for (i = 31; i < 34;  i++) state[i] = state[i - 31];
 	for (i = 34; i < 344; i++) state[i] = state[i - 31] + state[i - 3];
 }
