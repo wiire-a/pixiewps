@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 - Future and past timespan windows when seed is found to compensate sudden NTP updates (`--mode 3`).
 - Optional WPA-PSK and E-S2 recovery from M7 and E-S1 from M5 (majority of `--mode 3`, with `--m7-enc` and `--m5-enc`).
 - Print of number of cores when `--version` is used.
-- Re-introduced possibility to compile with OpenSSL (`make -DOPENSSL=1`) for better performance @rofl0r.
+- Re-introduced possibility to compile with OpenSSL (`make OPENSSL=1`) for better performance @rofl0r.
 - Message for contributing, see README for more details.
 
 ### Fixed
