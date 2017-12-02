@@ -24,7 +24,9 @@ apt-get -y install build-essential
 ```
 
 - Prior versions of **1.2** require [libssl-dev](https://www.openssl.org/)
-- Version **1.4** and later make use of multi-threading and require **libpthread**
+- Version **1.4** (and later) make use of multi-threading and require **libpthread**
+
+In version **1.4** (and later) OpenSSL has been re-introduced as optional to achieve better speeds. See the **Build** section.
 
 # Setup
 
@@ -43,7 +45,7 @@ cd pixiewps*/
 cd src/
 make
 ```
-Optionally, you can run `make OPENSSL=1` to use faster OpenSSL SHA256 functions.
+Optionally, you can run `make OPENSSL=1` to use faster OpenSSL SHA-256 functions.
 
 **Install**
 
@@ -114,7 +116,7 @@ This feature can be used to crack the WPA-PSK (and WPS PIN) from a passive packe
 This option is used only for mode 3. When used pixiewps will start bruteforcing from the current time and go back all the way to 0. It is conceptually identical to using `--end 01/1970` only (or `--start 01/1970` since they're interchangeable).
 
 ## Empty PIN
-The empty PIN, denoted with `<empty>` can be tested with `-p ""` in Reaver [1.6.1](https://github.com/t6x/reaver-wps-fork-t6x/releases/tag/v1.6.1) and later. It comes from a misconfiguration of the WPS pin method on some Access Points which have the pin variable set to `NULL` (or empty string).
+The empty PIN, denoted with `<empty>` can be tested with `-p ""` in Reaver [1.6.1](https://github.com/t6x/reaver-wps-fork-t6x/releases/tag/v1.6.1) and later. It comes from a misconfiguration of the PIN method on some Access Points which have the PIN variable set to `NULL` (or empty string).
 
 ![pixiewps_screenshot_3](https://i.imgur.com/t3JYGHV.png)
 
@@ -124,10 +126,18 @@ Pixiewps can be compiled and installed on a wide variety of platforms including 
 
 On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
 
+## Versioning convention
+The version numbering is in the form `1.x.y`, where `x` usually indicates a major release, and `y` a minor release, typically bug fixing or other small changes. Every major release starts with `y = 0`. The only exceptions are OpenWrt builds where the attribute `PKG_RELEASE` starts from 1, see `version.mk`. For instance, release `1.4.0` would be indicated as package `1.4-1` in OpenWrt when built.
+
+For a list of changes between one release and the previous refer to [CHANGELOG](https://github.com/wiire-a/pixiewps/blob/master/CHANGELOG.md).
+
 ## Notes for wrappers and scripts
 - The data in input can be formatted with one of the following byte separators: '`:`', '`-`', '` `', or without
 - The most useful tags like `WPS pin` and `WPA-PSK` are denoted with `[+]` or `[-]` in case of failure
 - Pixiewps returns `0` on a successful attempt
+
+# Contributing
+Since the very first release pixiewps has improved a lot, but it's hard to keep track of every device on the market. We have decided to add an automatic message suggesting that we are interested in the parameters of the device tested by the user.
 
 # Acknowledgements
 
