@@ -16,6 +16,7 @@
  */
 
 #define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +32,14 @@
 # include <windows.h>
 #endif
 
+#ifdef __APPLE__
+# define _DARWIN_C_SOURCE
+#endif
 #include <sys/types.h>
 #include <sys/time.h>
+#if defined(__APPLE__) || defined(__FreeBSD__)
+# include <sys/sysctl.h>
+#endif
 
 #include "config.h"
 #include "pixiewps.h"
