@@ -129,9 +129,9 @@ int get_int(char *in, int *out)
 unsigned int bit_revert(unsigned int v)
 {
 	size_t i;
-	unsigned int lsb, n = 0;
+	unsigned int n = 0;
 	for (i = 0; i < sizeof(unsigned int) * 8; i++) {
-		lsb = v & 1;
+		const unsigned int lsb = v & 1;
 		v >>= 1;
 		n <<= 1;
 		n |= lsb;

@@ -26,16 +26,6 @@ struct glibc_prng {
 };
 
 /*
- * If only 3 numbers are generated then there's no need to store new values
- */
-static uint32_t glibc_rand_fast(struct glibc_prng *prng)
-{
-	const uint32_t *state = prng->state;
-	const int i = prng->index++;
-	return (state[i - 31] + state[i - 3]) >> 1;
-}
-
-/*
  * There are no checks of bounds (GLIBC_MAX_GEN is the maximum number of times it can be called)
  */
 static uint32_t glibc_rand(struct glibc_prng *prng)

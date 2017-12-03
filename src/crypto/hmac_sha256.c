@@ -69,13 +69,14 @@ struct hmac_ctx {
 static void hmac_sha256_init(struct hmac_ctx *hctx, const uint8_t *key, size_t keylen)
 {
 	size_t i;
-	uint8_t opad[PAD_SIZE], ipad[PAD_SIZE], hash[HASH_SIZE];
+	uint8_t opad[PAD_SIZE], ipad[PAD_SIZE];
 	SHA256_CTX ctx;
 
 	memset(ipad, 0x36, PAD_SIZE);
 	memset(opad, 0x5C, PAD_SIZE);
 
 	if (keylen > PAD_SIZE) {
+		uint8_t hash[HASH_SIZE];
 
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, key, keylen);
@@ -116,4 +117,3 @@ static void hmac_sha256_yield(const struct hmac_ctx *hctx,
 	SHA256_Update(&ctx, hash, sizeof hash);
 	SHA256_Final(output, &ctx);
 }
-

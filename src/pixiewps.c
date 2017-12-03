@@ -178,13 +178,12 @@ static int crack_rt(uint32_t start, uint32_t end, uint32_t *result)
 
 static void crack_thread_rt(struct crack_job *j)
 {
-	uint64_t tmp;
 	uint32_t start = j->start, end;
 	uint32_t res;
 
 	while (!job_control.nonce_seed) {
-		tmp = (uint64_t)start + (uint64_t)SEEDS_PER_JOB_BLOCK;
-		if (tmp > (uint64_t)job_control.end) tmp =  job_control.end;
+		uint64_t tmp = (uint64_t)start + (uint64_t)SEEDS_PER_JOB_BLOCK;
+		if (tmp > (uint64_t)job_control.end) tmp = job_control.end;
 		end = tmp;
 
 		if (crack_rt(start, end, &res)) {
@@ -767,11 +766,13 @@ usage_err:
 		}
 		if (wps->verbosity > 1) {
 			if (decrypted5) {
-				if ((vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN)))
+				if ((vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN))) {
 					printf("\n [*] ES1:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+				}
 			}
-			if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_E_SNONCE_2, WPS_NONCE_LEN)))
+			if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_E_SNONCE_2, WPS_NONCE_LEN))) {
 				printf("\n [*] ES2:      "); byte_array_print(vtag->data, WPS_NONCE_LEN);
+			}
 		}
 		if ((vtag = find_vtag(decrypted7, wps->m7_encr_len - 16, WPS_TAG_SSID, 0))) {
 			int tag_size = end_ntoh16(vtag->len);
@@ -1472,23 +1473,13 @@ static uint32_t ecos_rand_knuth(uint32_t *seed)
 	return *seed;
 }
 
-/* Simple power function */
-static int int_pow(int a, int exp)
-{
-	if (exp <= 0) return 1;
-	int r = a;
-
-	while (--exp) r *= a;
-	return r;
-}
-
 /* return non-zero if pin half is correct, zero otherwise */
 static int check_pin_half(const struct hmac_ctx *hctx, const char pinhalf[4], uint8_t *psk, const uint8_t *es, struct global *wps, const uint8_t *ehash)
 {
 	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
 	uint8_t result[WPS_HASH_LEN];
 
-	hmac_sha256_yield(hctx, pinhalf, 4, psk);
+	hmac_sha256_yield(hctx, (uint8_t *)pinhalf, 4, psk);
 	memcpy(buffer, es, WPS_SECRET_NONCE_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN, psk, WPS_PSK_LEN);
 	memcpy(buffer + WPS_SECRET_NONCE_LEN + WPS_PSK_LEN, wps->pke, WPS_PKEY_LEN);
