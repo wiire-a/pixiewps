@@ -8,7 +8,7 @@ else
 CRYPTO = mbedtls/sha256.c mbedtls/md.c mbedtls/md_wrap.c
 endif
 
-PREFIX = /usr
+PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 TARGET = pixiewps
