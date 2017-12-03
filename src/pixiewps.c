@@ -214,7 +214,7 @@ static void *crack_thread(void *arg)
 	return 0;
 }
 
-#ifndef PTHREAD_STACK_MIN
+#if !defined(PTHREAD_STACK_MIN) || PTHREAD_STACK_MIN == 0
 static void setup_thread(int i)
 {
 	pthread_create(&job_control.crack_jobs[i].thr, 0, crack_thread, &job_control.crack_jobs[i]);
@@ -240,7 +240,7 @@ static void init_crack_jobs(struct global *wps, int mode)
 {
 	job_control.wps = wps;
 	job_control.jobs = wps->jobs;
-	job_control.end = (mode == RTL819x) ? wps->end : 0xffffffffu;
+	job_control.end = (mode == RTL819x) ? (uint32_t)wps->end : 0xffffffffu;
 	job_control.mode = mode;
 	job_control.nonce_seed = 0;
 	memset(job_control.randr_enonce, 0, sizeof(job_control.randr_enonce));
