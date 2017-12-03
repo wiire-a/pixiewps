@@ -1418,6 +1418,7 @@ usage_err:
 	free(wps->e_bssid);
 	free(wps->psk1);
 	free(wps->psk2);
+	free(wps->empty_psk);
 	free(wps->e_s1);
 	free(wps->e_s2);
 	free(wps->error);
