@@ -1,15 +1,15 @@
-/* public domain hmac_sha256 implementation written by rofl0r for pixiewps */
+/* Public domain hmac_sha256 implementation written by rofl0r for pixiewps */
 
 #include <stdint.h>
 #include <string.h>
 #ifdef USE_OPENSSL
-#include <openssl/sha.h>
+# include <openssl/sha.h>
 #else
-#include "../mbedtls/sha256.h"
-#define SHA256_CTX mbedtls_sha256_context
-#define SHA256_Init(x) do { mbedtls_sha256_init(x); mbedtls_sha256_starts(x, 0); } while(0)
-#define SHA256_Update(x, y, z) mbedtls_sha256_update(x, y, z)
-#define SHA256_Final(y, x) mbedtls_sha256_finish(x, y)
+# include "../mbedtls/sha256.h"
+# define SHA256_CTX mbedtls_sha256_context
+# define SHA256_Init(x) do { mbedtls_sha256_init(x); mbedtls_sha256_starts(x, 0); } while(0)
+# define SHA256_Update(x, y, z) mbedtls_sha256_update(x, y, z)
+# define SHA256_Final(y, x) mbedtls_sha256_finish(x, y)
 #endif
 
 #define PAD_SIZE  64
@@ -66,23 +66,23 @@ struct hmac_ctx {
 	SHA256_CTX octx;
 };
 
-static void hmac_sha256_init(struct hmac_ctx *hctx, const uint8_t *key, size_t keylen)
+static void hmac_sha256_init(struct hmac_ctx *hctx, const uint8_t *key,
+	size_t keylen)
 {
 	size_t i;
-	uint8_t opad[PAD_SIZE], ipad[PAD_SIZE];
+	uint8_t opad[PAD_SIZE], ipad[PAD_SIZE], hash[HASH_SIZE];
 	SHA256_CTX ctx;
 
 	memset(ipad, 0x36, PAD_SIZE);
 	memset(opad, 0x5C, PAD_SIZE);
 
 	if (keylen > PAD_SIZE) {
-		uint8_t hash[HASH_SIZE];
 
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, key, keylen);
 		SHA256_Final(hash, &ctx);
 
-		for (i = 0; i<HASH_SIZE; i++) {
+		for (i = 0; i < HASH_SIZE; i++) {
 			ipad[i] ^= hash[i];
 			opad[i] ^= hash[i];
 		}
@@ -110,7 +110,6 @@ static void hmac_sha256_yield(const struct hmac_ctx *hctx,
 
 	SHA256_Update(&ctx, input, ilen);
 	SHA256_Final(hash, &ctx);
-
 
 	memcpy(&ctx, &hctx->octx, sizeof(ctx));
 

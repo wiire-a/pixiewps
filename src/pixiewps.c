@@ -355,7 +355,7 @@ static int find_rtl_es(struct global *wps)
 
 	init_crack_jobs(wps, -RTL819x);
 
-	/* checking distance 0 in the main thread, as it is the most likely */
+	/* Checking distance 0 in the main thread, as it is the most likely */
 	uint8_t nonce_buf[WPS_SECRET_NONCE_LEN];
 	char pin[WPS_PIN_LEN + 1];
 
@@ -373,7 +373,7 @@ static int find_rtl_es(struct global *wps)
 		char pin_copy[WPS_PIN_LEN + 1];
 		strcpy(pin_copy, wps->pin);
 		int j;
-		/* we assume that the seed used for es2 is within a range of 10 seconds
+		/* We assume that the seed used for es2 is within a range of 10 seconds
 		   forwards in time only */
 		for (j = 0; j < 10; j++) {
 			strcpy(wps->pin, pin_copy);
@@ -392,7 +392,7 @@ static int find_rtl_es(struct global *wps)
 
 static void empty_pin_hmac(struct global *wps)
 {
-	/* since the empty pin psk is static once initialized, we calculate it only once */
+	/* Since the empty pin psk is static once initialized, we calculate it only once */
 	hmac_sha256(wps->authkey, WPS_AUTHKEY_LEN, NULL, 0, wps->empty_psk);
 }
 
@@ -1474,7 +1474,7 @@ static uint32_t ecos_rand_knuth(uint32_t *seed)
 	return *seed;
 }
 
-/* return non-zero if pin half is correct, zero otherwise */
+/* Return non-zero if pin half is correct, zero otherwise */
 static int check_pin_half(const struct hmac_ctx *hctx, const char pinhalf[4], uint8_t *psk, const uint8_t *es, struct global *wps, const uint8_t *ehash)
 {
 	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
@@ -1490,7 +1490,7 @@ static int check_pin_half(const struct hmac_ctx *hctx, const char pinhalf[4], ui
 	return !memcmp(result, ehash, WPS_HASH_LEN);
 }
 
-/* return non-zero if pin half is correct, zero otherwise */
+/* Return non-zero if pin half is correct, zero otherwise */
 static int check_empty_pin_half(const uint8_t *es, struct global *wps, const uint8_t *ehash)
 {
 	uint8_t buffer[WPS_SECRET_NONCE_LEN + WPS_PSK_LEN + WPS_PKEY_LEN * 2];
