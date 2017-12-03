@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.0] - 2017-12-04
 ### Added
 - Multi-threading support @rofl0r.
 - Huge performance optimizations (`--mode 3`).
