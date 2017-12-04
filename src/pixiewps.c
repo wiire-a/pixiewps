@@ -722,6 +722,10 @@ usage_err:
 			wps->e_s2 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s2) goto memory_err;
 			wps->psk1 = malloc(WPS_HASH_LEN);         if (!wps->psk1) goto memory_err;
 			wps->psk2 = malloc(WPS_HASH_LEN);         if (!wps->psk2) goto memory_err;
+			wps->empty_psk = malloc(WPS_HASH_LEN);    if (!wps->empty_psk) goto memory_err;
+
+			empty_pin_hmac(wps);
+
 			if ((vtag = find_vtag(decrypted5, wps->m5_encr_len - 16, WPS_TAG_E_SNONCE_1, WPS_NONCE_LEN))) {
 				memcpy(wps->e_s1, vtag->data, WPS_NONCE_LEN);
 			}
@@ -807,6 +811,7 @@ usage_err:
 				free(wps->e_s2);
 				free(wps->psk1);
 				free(wps->psk2);
+				free(wps->empty_psk);
 			}
 		}
 
