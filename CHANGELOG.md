@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.4.1] - 2017-12-04
+### Fixed
+- Segmentation fault when trying to recover the PIN with `-m7-enc` and other options @rofl0r @binarymaster.
+
 ## [1.4.0] - 2017-12-04
 ### Added
 - Multi-threading support @rofl0r.
