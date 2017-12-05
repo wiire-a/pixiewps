@@ -127,7 +127,7 @@ Pixiewps can be compiled and installed on a wide variety of platforms including 
 On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
 
 ## Versioning convention
-The version numbering is in the form `1.x.y`, where `x` usually indicates a major release, and `y` a minor release, typically bug fixing or other small changes. Every major release starts with `y = 0`. The only exceptions are OpenWrt builds where the attribute `PKG_RELEASE` starts from 1, see `version.mk`. For instance, release `1.4.0` would be indicated as package `1.4-1` in OpenWrt when built.
+The version numbering is in the form `1.x.y`, where `x` usually indicates a major release, and `y` a minor release, typically bug fixing or other small changes. Every major release starts with `y = 0` and should be considered unstable in the first hours of publishing, even if not marked as such.
 
 For a list of changes between one release and the previous refer to [CHANGELOG](https://github.com/wiire-a/pixiewps/blob/master/CHANGELOG.md).
 
