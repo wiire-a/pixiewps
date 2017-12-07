@@ -1344,25 +1344,32 @@ usage_err:
 			if (wps->verbosity > 2) {
 				if (found_p_mode != NONE) {
 					if (found_p_mode == RTL819x) {
-						time_t seed_time;
-						struct tm ts;
-						char buffer[30];
+						if (wps->nonce_seed) {
+							time_t seed_time;
+							struct tm ts;
+							char buffer[30];
 
-						printf("\n [*] Seed N1:  %u", wps->nonce_seed);
-						seed_time = wps->nonce_seed;
-						ts = *gmtime(&seed_time);
-						strftime(buffer, 30, "%c", &ts);
-						printf(" (%s UTC)", buffer);
-						printf("\n [*] Seed ES1: %u", wps->s1_seed);
-						seed_time = wps->s1_seed;
-						ts = *gmtime(&seed_time);
-						strftime(buffer, 30, "%c", &ts);
-						printf(" (%s UTC)", buffer);
-						printf("\n [*] Seed ES2: %u", wps->s2_seed);
-						seed_time = wps->s2_seed;
-						ts = *gmtime(&seed_time);
-						strftime(buffer, 30, "%c", &ts);
-						printf(" (%s UTC)", buffer);
+							printf("\n [*] Seed N1:  %u", wps->nonce_seed);
+							seed_time = wps->nonce_seed;
+							ts = *gmtime(&seed_time);
+							strftime(buffer, 30, "%c", &ts);
+							printf(" (%s UTC)", buffer);
+							printf("\n [*] Seed ES1: %u", wps->s1_seed);
+							seed_time = wps->s1_seed;
+							ts = *gmtime(&seed_time);
+							strftime(buffer, 30, "%c", &ts);
+							printf(" (%s UTC)", buffer);
+							printf("\n [*] Seed ES2: %u", wps->s2_seed);
+							seed_time = wps->s2_seed;
+							ts = *gmtime(&seed_time);
+							strftime(buffer, 30, "%c", &ts);
+							printf(" (%s UTC)", buffer);
+						}
+						else {
+							printf("\n [*] Seed N1:  -");
+							printf("\n [*] Seed ES1: -");
+							printf("\n [*] Seed ES2: -");
+						}
 					}
 					else {
 						if (found_p_mode == RT && wps->nonce_seed == 0)
