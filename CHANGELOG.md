@@ -2,10 +2,12 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Fixed
+- Incorrect seeds displayed when PRNG is not bruteforced (`--mode 3`).
 
 ## [1.4.1] - 2017-12-04
 ### Fixed
-- Segmentation fault when trying to recover the PIN with `-m7-enc` and other options @rofl0r @binarymaster.
+- Segmentation fault when trying to recover the PIN with `--m7-enc` and other options @rofl0r @binarymaster.
 
 ## [1.4.0] - 2017-12-04
 ### Added
