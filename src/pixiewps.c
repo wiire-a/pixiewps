@@ -1108,31 +1108,31 @@ usage_err:
 
 			DEBUG_PRINT(" * Mode: %d (%s)", ECOS_SIMPLE, p_mode_name[ECOS_SIMPLE]);
 
-			uint32_t index = wps->e_nonce[0] << 25; /* Reducing entropy from 32 to 25 bits */
-			do {
-				seed = index;
-				uint_fast8_t i;
+			uint32_t known = wps->e_nonce[0] << 25; /* Reducing entropy from 32 to 25 bits */
+			uint32_t counter = 0;
+			seed = 0;
+			while (counter < 0x02000000) {
+				int i;
+				seed = known | counter;
 				for (i = 1; i < WPS_NONCE_LEN; i++) {
-					if (wps->e_nonce[i] != (uint8_t) (ecos_rand_simple(&seed) & 0xff))
+					if (wps->e_nonce[i] != (uint8_t)(ecos_rand_simple(&seed) & 0xff))
 						break;
 				}
 				if (i == WPS_NONCE_LEN) { /* Seed found */
-					wps->nonce_seed = index;
-
 					wps->s1_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S1 */
-						wps->e_s1[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
+						wps->e_s1[i] = (uint8_t)(ecos_rand_simple(&seed) & 0xff);
 					wps->s2_seed = seed;
 					for (i = 0; i < WPS_SECRET_NONCE_LEN; i++) /* Advance to get E-S2 */
-						wps->e_s2[i] = (uint8_t) (ecos_rand_simple(&seed) & 0xff);
+						wps->e_s2[i] = (uint8_t)(ecos_rand_simple(&seed) & 0xff);
 
-					DEBUG_PRINT("Seed found (%10u)", wps->nonce_seed);
+					DEBUG_PRINT("Seed found");
 					break;
 				}
-				index++;
-			} while (!(index & 0x02000000));
+				counter++;
+			}
 
-			if (wps->nonce_seed) { /* Seed found */
+			if (wps->s1_seed) { /* Seed found */
 
 				DEBUG_PRINT("Trying with E-S1: ");
 				DEBUG_PRINT_ARRAY(wps->e_s1, WPS_SECRET_NONCE_LEN);
@@ -1370,7 +1370,7 @@ usage_err:
 				}
 			}
 			else {
-				if (found_p_mode == RT && wps->nonce_seed == 0)
+				if ((found_p_mode == RT && wps->nonce_seed == 0) || found_p_mode == ECOS_SIMPLE)
 					printf("\n [*] Seed N1:  -");
 				else
 					printf("\n [*] Seed N1:  0x%08x", wps->nonce_seed);
