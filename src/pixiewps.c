@@ -1336,48 +1336,46 @@ usage_err:
 
 	printf("\n Pixiewps %s\n", SHORT_VERSION);
 
-	if (found_p_mode) {
+	if (found_p_mode != NONE) {
 		if (wps->verbosity > 1) {
 			printf("\n [?] Mode:     %u (%s)", found_p_mode, p_mode_name[found_p_mode]);
 		}
 		if (wps->verbosity > 2) {
-			if (found_p_mode != NONE) {
-				if (found_p_mode == RTL819x) {
-					if (wps->nonce_seed) {
-						time_t seed_time;
-						struct tm ts;
-						char buffer[30];
+			if (found_p_mode == RTL819x) {
+				if (wps->nonce_seed) {
+					time_t seed_time;
+					struct tm ts;
+					char buffer[30];
 
-						printf("\n [*] Seed N1:  %u", wps->nonce_seed);
-						seed_time = wps->nonce_seed;
-						ts = *gmtime(&seed_time);
-						strftime(buffer, 30, "%c", &ts);
-						printf(" (%s UTC)", buffer);
-						printf("\n [*] Seed ES1: %u", wps->s1_seed);
-						seed_time = wps->s1_seed;
-						ts = *gmtime(&seed_time);
-						strftime(buffer, 30, "%c", &ts);
-						printf(" (%s UTC)", buffer);
-						printf("\n [*] Seed ES2: %u", wps->s2_seed);
-						seed_time = wps->s2_seed;
-						ts = *gmtime(&seed_time);
-						strftime(buffer, 30, "%c", &ts);
-						printf(" (%s UTC)", buffer);
-					}
-					else {
-						printf("\n [*] Seed N1:  -");
-						printf("\n [*] Seed ES1: -");
-						printf("\n [*] Seed ES2: -");
-					}
+					printf("\n [*] Seed N1:  %u", wps->nonce_seed);
+					seed_time = wps->nonce_seed;
+					ts = *gmtime(&seed_time);
+					strftime(buffer, 30, "%c", &ts);
+					printf(" (%s UTC)", buffer);
+					printf("\n [*] Seed ES1: %u", wps->s1_seed);
+					seed_time = wps->s1_seed;
+					ts = *gmtime(&seed_time);
+					strftime(buffer, 30, "%c", &ts);
+					printf(" (%s UTC)", buffer);
+					printf("\n [*] Seed ES2: %u", wps->s2_seed);
+					seed_time = wps->s2_seed;
+					ts = *gmtime(&seed_time);
+					strftime(buffer, 30, "%c", &ts);
+					printf(" (%s UTC)", buffer);
 				}
 				else {
-					if (found_p_mode == RT && wps->nonce_seed == 0)
-						printf("\n [*] Seed N1:  -");
-					else
-						printf("\n [*] Seed N1:  0x%08x", wps->nonce_seed);
-					printf("\n [*] Seed ES1: 0x%08x", wps->s1_seed);
-					printf("\n [*] Seed ES2: 0x%08x", wps->s2_seed);
+					printf("\n [*] Seed N1:  -");
+					printf("\n [*] Seed ES1: -");
+					printf("\n [*] Seed ES2: -");
 				}
+			}
+			else {
+				if (found_p_mode == RT && wps->nonce_seed == 0)
+					printf("\n [*] Seed N1:  -");
+				else
+					printf("\n [*] Seed N1:  0x%08x", wps->nonce_seed);
+				printf("\n [*] Seed ES1: 0x%08x", wps->s1_seed);
+				printf("\n [*] Seed ES2: 0x%08x", wps->s2_seed);
 			}
 			if (wps->dhkey) { /* To see if AuthKey was supplied or not */
 				printf("\n [*] DHKey:    "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
