@@ -26,8 +26,5 @@ install:
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)/$(TARGET)
 
-uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/$(TARGET)
-
 clean:
 	rm -f $(TARGET)
