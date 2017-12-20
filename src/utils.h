@@ -23,7 +23,7 @@
 
 #include <sys/types.h>
 
-/* Converts an hex string to a byte array */
+/* Convert an hex string to a byte array */
 unsigned int hex_string_to_byte_array(char *in, uint8_t *out, const unsigned int n_len)
 {
 	unsigned int len = strlen(in);
@@ -57,7 +57,7 @@ unsigned int hex_string_to_byte_array(char *in, uint8_t *out, const unsigned int
 	return 0;
 }
 
-/* Converts an hex string to a byte array */
+/* Convert an hex string to a byte array */
 unsigned int hex_string_to_byte_array_max(
 		char *in, uint8_t *out, const unsigned int max_len, unsigned int *m_len)
 {
@@ -111,7 +111,7 @@ end:
 	return 0;
 }
 
-/* Converts a string into an integer */
+/* Convert a string into an integer */
 int get_int(char *in, int *out)
 {
 	int i, o = 0, len = strlen(in);
@@ -172,7 +172,7 @@ time_t c_timegm(register struct tm *t)
 	return result;
 }
 
-/* Converts a [mm/]yyyy string to Unix date time */
+/* Convert a [mm/]yyyy string to Unix date time */
 unsigned int get_unix_datetime(char *s, time_t *datetime)
 {
 	unsigned int len = strlen(s);
@@ -217,14 +217,10 @@ unsigned int get_unix_datetime(char *s, time_t *datetime)
 		*datetime = (time_t)0x7fffffff;
 	}
 	else {
-		struct tm t;
-		t.tm_sec = 0;
-		t.tm_min = 0;
-		t.tm_hour = 0;
-		t.tm_mday = 1;
-		t.tm_mon = month - 1;
-		t.tm_year = year - 1900;
-		t.tm_isdst = 0;
+		struct tm t = {
+			.tm_year = year - 1900,
+			.tm_mon = month - 1,
+			.tm_mday = 1 };
 		*datetime = c_timegm(&t);
 
 		if (*datetime < 0) /* When time_t is 64 bits this check is pointless */
@@ -234,13 +230,13 @@ unsigned int get_unix_datetime(char *s, time_t *datetime)
 	return 0;
 }
 
-/* Returns the difference of time between the two in milliseconds */
+/* Return the difference of time between the two in milliseconds */
 unsigned long get_elapsed_ms(struct timeval *start, struct timeval *end)
 {
 	return (((end->tv_sec - start->tv_sec) * 1000000 + (end->tv_usec - start->tv_usec)) / 1000);
 }
 
-/* Converts an unsigned integer to a char array without termination */
+/* Convert an unsigned integer to a char array without termination */
 static inline void uint_to_char_array(unsigned int num, unsigned int len, char *dst)
 {
 	unsigned int mul = 1;
@@ -250,14 +246,11 @@ static inline void uint_to_char_array(unsigned int num, unsigned int len, char *
 	}
 }
 
-/* Prints a byte array in hexadecimal */
+/* Print a byte array in hexadecimal */
 void byte_array_print(const uint8_t *buffer, const unsigned int length)
 {
-	for (unsigned int i = 0; i < length; i++) {
+	for (unsigned int i = 0; i < length; i++)
 		printf("%02x", buffer[i]);
-//		if (i != length - 1)
-//			printf(":");
-	}
 }
 
 #endif /* UTILS_H */

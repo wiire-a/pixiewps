@@ -1,6 +1,6 @@
 CFLAGS = -std=c99 -O3
 
-LIBS   = -lpthread
+LIBS = -lpthread
 ifeq ($(OPENSSL),1)
 LIBS += -lcrypto
 CFLAGS += -DUSE_OPENSSL

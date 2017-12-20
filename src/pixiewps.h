@@ -45,7 +45,7 @@
 #include "utils.h"
 
 #ifndef WPS_PIN_LEN
-#define WPS_PIN_LEN           8
+# define WPS_PIN_LEN          8
 #endif
 
 #if defined(DEBUG)
@@ -87,13 +87,12 @@ const uint8_t wps_rtl_pke[] = {
 	0x66,0xA5,0xA4,0x90, 0x47,0x2C,0xEB,0xA9, 0xE3,0xB4,0x22,0x4F, 0x3D,0x89,0xFB,0x2B
 };
 
-/* Unused */
-const uint8_t rtl_rnd_seed[] = {
+/* const uint8_t rtl_rnd_seed[] = {
 	0x52,0x65,0x61,0x6c, 0x74,0x65,0x6b,0x20, 0x57,0x69,0x46,0x69, 0x20,0x53,0x69,0x6d,
 	0x70,0x6c,0x65,0x2d, 0x43,0x6f,0x6e,0x66, 0x69,0x67,0x20,0x44, 0x61,0x65,0x6d,0x6f,
 	0x6e,0x20,0x70,0x72, 0x6f,0x67,0x72,0x61, 0x6d,0x20,0x32,0x30, 0x30,0x36,0x2d,0x30,
 	0x35,0x2d,0x31,0x35
-};
+}; */
 
 struct global {
 	char pin[WPS_PIN_LEN + 1];
@@ -154,8 +153,6 @@ char usage[] =
 	"\n"
 	"   -m, --r-nonce     : Registrar nonce\n"
 	"   -b, --e-bssid     : Enrollee BSSID\n"
-//	"   -S, --dh-small    : Small Diffie-Hellman keys (PKr not needed)  [No]\n"
-//	"   -l, --length      : Bruteforce entire pin length (experimental)\n"
 	"   -v, --verbosity   : Verbosity level 1-3, 1 is quietest           [3]\n"
 	"   -o, --output      : Write output to file\n"
 	"   -j, --jobs        : Number of parallel threads to use         [Auto]\n"
@@ -286,7 +283,7 @@ static inline uint_fast8_t parse_mode(char *list, uint_fast8_t *dst, const uint8
 	return 0;
 }
 
-/* Checks if passed mode is selected */
+/* Check if passed mode is selected */
 static inline uint_fast8_t is_mode_selected(const uint_fast8_t mode)
 {
 	for (uint_fast8_t i = 0; i < MODE_LEN && p_mode[i] != NONE; i++) {
