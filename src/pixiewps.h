@@ -49,12 +49,21 @@
 #endif
 
 #if defined(DEBUG)
-# define DEBUG_PRINT(fmt, args...) do { printf("\n [DEBUG] %s:%d:%s(): " fmt, \
+# define DEBUG_PRINT(fmt, args...) do { printf("\n [DEBUG] %s:%4d:%s(): " fmt, \
 	__FILE__, __LINE__, __func__, ##args); fflush(stdout); } while (0)
 # define DEBUG_PRINT_ARRAY(b, l) do { byte_array_print(b, l); fflush(stdout); } while (0)
+# define DEBUG_PRINT_ATTEMPT(s, z) \
+		do { \
+			printf("\n [DEBUG] %s:%4d:%s(): Trying with E-S1: ",  __FILE__, __LINE__, __func__); \
+			byte_array_print(s, WPS_SECRET_NONCE_LEN); \
+			printf("\n [DEBUG] %s:%4d:%s(): Trying with E-S1: ",  __FILE__, __LINE__, __func__); \
+			byte_array_print(z, WPS_SECRET_NONCE_LEN); \
+			fflush(stdout); \
+		} while (0)
 #else
 # define DEBUG_PRINT(fmt, args...) do {} while (0)
 # define DEBUG_PRINT_ARRAY(b, l) do {} while (0)
+# define DEBUG_PRINT_ATTEMPT(s, z) do {} while (0)
 #endif
 
 uint_fast8_t p_mode[MODE_LEN] = { 0 };
