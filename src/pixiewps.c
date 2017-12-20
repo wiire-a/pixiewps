@@ -142,11 +142,16 @@ struct ralink_randstate {
 
 static unsigned char ralink_randbyte(struct ralink_randstate *state)
 {
-	unsigned char r = 0, result;
-
-	if (state->sreg == 0) state->sreg = 1;
-
+	unsigned char r = 0;
 	for (int i = 0; i < 8; i++) {
+#if defined(__mips__) || defined(__mips)
+		uint32_t lsb_mask = -(state->sreg & 1);
+		state->sreg ^= lsb_mask & 0x80000057;
+		state->sreg >>= 1;
+		state->sreg |= lsb_mask & 0x80000000;
+		r = (r << 1) | (lsb_mask & 1);
+#else
+		unsigned char result;
 		if (state->sreg & 0x00000001) {
 			state->sreg = ((state->sreg ^ 0x80000057) >> 1) | 0x80000000;
 			result = 1;
@@ -156,6 +161,7 @@ static unsigned char ralink_randbyte(struct ralink_randstate *state)
 			result = 0;
 		}
 		r = (r << 1) | result;
+#endif
 	}
 	return r;
 }
@@ -269,7 +275,9 @@ static void init_crack_jobs(struct global *wps, int mode)
 		memcpy(job_control.randr_enonce, wps->e_nonce, WPS_NONCE_LEN);
 
 	job_control.crack_jobs = malloc(wps->jobs * sizeof (struct crack_job));
-	uint32_t curr = (mode == RTL819x) ? wps->start : 0;
+	uint32_t curr = 0;
+	if (mode == RTL819x) curr = wps->start;
+	else if (mode == RT) curr = 1; /* Ralink LFSR jumps from 0 to 1 internally */
 	int32_t add = (mode == RTL819x) ? -SEEDS_PER_JOB_BLOCK : SEEDS_PER_JOB_BLOCK;
 	for (i = 0; i < wps->jobs; i++) {
 		job_control.crack_jobs[i].start = (mode == -RTL819x) ? (uint32_t)i + 1 : curr;
@@ -1102,7 +1110,7 @@ usage_err:
 					unsigned lfsr = bit_revert(wps->nonce_seed);
 					int k = 8 * 32;
 					while (k--) {
-						unsigned int lsb_mask = ~(lfsr & 1) + 1;
+						unsigned int lsb_mask = -(lfsr & 1);
 						lfsr ^= lsb_mask & 0xd4000003;
 						lfsr >>= 1;
 						lfsr |= lsb_mask & 0x80000000;
