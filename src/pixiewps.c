@@ -806,8 +806,9 @@ usage_err:
 			pfound = crack(wps, wps->pin);
 		}
 
+		struct timeval diff;
 		gettimeofday(&t_end, 0);
-		unsigned long ms_elapsed = get_elapsed_ms(&t_start, &t_end);
+		timeval_subtract(&diff, &t_end, &t_start);
 
 		printf("\n Pixiewps %s\n", SHORT_VERSION);
 		if (wps->verbosity > 1) {
@@ -859,8 +860,7 @@ usage_err:
 		else {
 			printf("\n [-] WPA-PSK not found!");
 		}
-
-		printf("\n\n [*] Time taken: %lu s %lu ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
+		printf("\n\n [*] Time taken: %lu s %lu ms\n\n", diff.tv_sec, diff.tv_usec / 1000);
 
 		if (decrypted5) {
 			free(decrypted5);
@@ -1378,8 +1378,9 @@ usage_err:
 		k++;
 	}
 
+	struct timeval diff;
 	gettimeofday(&t_end, 0);
-	unsigned long ms_elapsed = get_elapsed_ms(&t_start, &t_end);
+	timeval_subtract(&diff, &t_end, &t_start);
 
 	k--;
 
@@ -1454,7 +1455,7 @@ usage_err:
 	else {
 		printf("\n [-] WPS pin not found!");
 	}
-	printf("\n\n [*] Time taken: %lu s %lu ms\n\n", ms_elapsed / 1000, ms_elapsed % 1000);
+	printf("\n\n [*] Time taken: %lu s %lu ms\n\n", diff.tv_sec, diff.tv_usec / 1000);
 
 	if (wps->warning) {
 		printf("%s", wps->warning);
