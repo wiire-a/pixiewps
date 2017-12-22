@@ -166,7 +166,7 @@ static unsigned char ralink_randbyte(struct ralink_randstate *state)
 	return r;
 }
 
-static void ralink_randbyte_back(struct ralink_randstate *state, uint8_t r)
+static void ralink_randstate_restore(struct ralink_randstate *state, uint8_t r)
 {
 	for (int i = 0; i < 8; i++) {
 		const unsigned char result = r & 1;
@@ -1151,7 +1151,7 @@ usage_err:
 			if (found_p_mode == NONE) {
 				struct ralink_randstate prng = {0};
 				for (int i = WPS_NONCE_LEN; i--; )
-					ralink_randbyte_back(&prng, wps->e_nonce[i]);
+					ralink_randstate_restore(&prng, wps->e_nonce[i]);
 				const uint32_t saved_sreg = prng.sreg;
 
 				int j;
