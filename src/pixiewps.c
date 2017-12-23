@@ -1115,6 +1115,10 @@ usage_err:
 			if (crack(wps, wps->pin) == PIN_FOUND) {
 				found_p_mode = RT;
 				DEBUG_PRINT("Pin found (%8s)", wps->pin);
+				struct ralink_randstate prng = {0};
+				for (int i = WPS_NONCE_LEN; i--; )
+					ralink_randstate_restore(&prng, wps->e_nonce[i]);
+				wps->nonce_seed = prng.sreg;
 			}
 		}
 
@@ -1145,6 +1149,10 @@ usage_err:
 				if (crack(wps, wps->pin) == PIN_FOUND) {
 					found_p_mode = RT;
 					DEBUG_PRINT("Pin found (%8s)", wps->pin);
+					struct ralink_randstate prng = {0};
+					for (int i = WPS_NONCE_LEN; i--; )
+						ralink_randstate_restore(&prng, wps->e_nonce[i]);
+					wps->nonce_seed = prng.sreg;
 				}
 			}
 
@@ -1424,7 +1432,7 @@ usage_err:
 				}
 			}
 			else {
-				if ((found_p_mode == RT && wps->nonce_seed == 0) || found_p_mode == ECOS_SIMPLE)
+				if (wps->nonce_seed == 0)
 					printf("\n [*] Seed N1:  -");
 				else
 					printf("\n [*] Seed N1:  0x%08x", wps->nonce_seed);
