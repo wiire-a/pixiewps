@@ -927,7 +927,7 @@ usage_err:
 		}
 		else {
 			p_mode[0] = RT;
-			if (wps->pke && (!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4]  & 0x80) &&
+			if ((!(wps->e_nonce[0] & 0x80) && !(wps->e_nonce[4] & 0x80) &&
 					!(wps->e_nonce[8] & 0x80) && !(wps->e_nonce[12] & 0x80))) {
 				p_mode[1] = RTL819x;
 				p_mode[2] = ECOS_SIMPLE;
