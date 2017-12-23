@@ -952,8 +952,8 @@ usage_err:
 
 	if (is_mode_selected(RTL819x)) { /* Ignore --start and --end otherwise */
 
-		wps->start = t_start.tv_sec + SEC_PER_DAY; /* Extra 1 day */
-		wps->end = t_start.tv_sec - MODE3_DAYS * SEC_PER_DAY;
+		wps->start = t_start.tv_sec + SEC_PER_DAY;
+		wps->end = t_start.tv_sec - SEC_PER_DAY;
 
 		/* Attributes --start and --end can be switched start > end or end > start */
 		if (start_p != (time_t) -1) {
