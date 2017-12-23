@@ -140,18 +140,18 @@ unsigned int bit_revert(unsigned int v)
 }
 
 /* Custom timegm function made by Eric S Raymond */
-time_t c_timegm(register struct tm *t)
+time_t c_timegm(struct tm *t)
 {
 	long year;
 	time_t result;
 
 	#define MONTHS_PER_YEAR 12 /* Months per calendar year */
 
-	static const int cumdays[MONTHS_PER_YEAR] =
+	static const int cdays[MONTHS_PER_YEAR] =
 		{ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
 
 	year = 1900 + t->tm_year + t->tm_mon / MONTHS_PER_YEAR;
-	result = (year - 1970) * 365 + cumdays[t->tm_mon % MONTHS_PER_YEAR];
+	result = (year - 1970) * 365 + cdays[t->tm_mon % MONTHS_PER_YEAR];
 	result += (year - 1968) / 4;
 	result -= (year - 1900) / 100;
 	result += (year - 1600) / 400;

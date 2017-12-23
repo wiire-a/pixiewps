@@ -778,10 +778,10 @@ usage_err:
 		uint_fast8_t pfound = PIN_ERROR;
 		vtag_t *vtag;
 		if (decrypted5 && decrypted7 && wps->e_hash1 && wps->e_hash2) {
-			wps->e_s1 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s1) goto memory_err;
-			wps->e_s2 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s2) goto memory_err;
-			wps->psk1 = malloc(WPS_HASH_LEN);         if (!wps->psk1) goto memory_err;
-			wps->psk2 = malloc(WPS_HASH_LEN);         if (!wps->psk2) goto memory_err;
+			wps->e_s1 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s1)      goto memory_err;
+			wps->e_s2 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s2)      goto memory_err;
+			wps->psk1 = malloc(WPS_HASH_LEN);         if (!wps->psk1)      goto memory_err;
+			wps->psk2 = malloc(WPS_HASH_LEN);         if (!wps->psk2)      goto memory_err;
 			wps->empty_psk = malloc(WPS_HASH_LEN);    if (!wps->empty_psk) goto memory_err;
 
 			empty_pin_hmac(wps);
@@ -1091,8 +1091,8 @@ usage_err:
 	wps->e_s2 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s2) goto memory_err;
 
 	/* Allocate memory for digests */
-	wps->psk1 = malloc(WPS_HASH_LEN); if (!wps->psk1) goto memory_err;
-	wps->psk2 = malloc(WPS_HASH_LEN); if (!wps->psk2) goto memory_err;
+	wps->psk1 = malloc(WPS_HASH_LEN);      if (!wps->psk1)      goto memory_err;
+	wps->psk2 = malloc(WPS_HASH_LEN);      if (!wps->psk2)      goto memory_err;
 	wps->empty_psk = malloc(WPS_HASH_LEN); if (!wps->empty_psk) goto memory_err;
 
 	empty_pin_hmac(wps);
