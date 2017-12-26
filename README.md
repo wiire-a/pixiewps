@@ -1,4 +1,4 @@
-# Overview [![License](https://img.shields.io/badge/License-GPL%20v3%2B-blue.svg?style=flat-square)](https://github.com/wiire/pixiewps/blob/master/LICENSE.md)
+# Overview [![License](https://img.shields.io/badge/License-GPL%20v3%2B-blue.svg?style=flat-square)](LICENSE.md)
 
 **Pixiewps** is a tool written in C used to **bruteforce offline** the WPS PIN exploiting the low or non-existing entropy of some software implementations, the so-called "pixie-dust attack" discovered by Dominique Bongard in summer 2014. It is meant for educational purposes only.
 
@@ -14,7 +14,7 @@ It all started as a project from the community, more details can be found here:
 - [https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool](https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool)
 - [https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack)](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack))
 
-You can also visit the [wiki](wiki).
+You can also visit the [wiki](https://github.com/wiire-a/pixiewps/wiki).
 
 # Requirements
 
@@ -127,7 +127,7 @@ Since version 1.4.1 it has been included in [OpenWrt](https://openwrt.org/) and 
 ## Versioning convention
 The version numbering is in the form `1.x.y`, where `x` usually indicates a major release, and `y` a minor release, typically bug fixing or other small changes. Every major release starts with `y = 0` and should be considered unstable in the first hours of publishing, even if not marked as such.
 
-For a list of changes between one release and the previous refer to [CHANGELOG](https://github.com/wiire-a/pixiewps/blob/master/CHANGELOG.md).
+For a list of changes between one release and the previous refer to [CHANGELOG](CHANGELOG.md).
 
 ## Notes for wrappers and scripts
 - The data in input can be formatted with one of the following byte separators: '`:`', '`-`', '` `', or without
