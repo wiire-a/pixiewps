@@ -1,10 +1,10 @@
 # Overview [![License](https://img.shields.io/badge/License-GPL%20v3%2B-blue.svg?style=flat-square)](https://github.com/wiire/pixiewps/blob/master/LICENSE.md)
 
-**Pixiewps** is a tool written in C used to **bruteforce offline** the WPS PIN exploiting the low or non-existing entropy of some Access Points, the so-called "pixie-dust attack" discovered by Dominique Bongard in summer 2014. It is meant for educational purposes only.
+**Pixiewps** is a tool written in C used to **bruteforce offline** the WPS PIN exploiting the low or non-existing entropy of some software implementations, the so-called "pixie-dust attack" discovered by Dominique Bongard in summer 2014. It is meant for educational purposes only.
 
-As opposed to the traditional online brute-force attack, implemented in tools like Reaver or Bully which aim to recover the pin in a few hours, this method can get the PIN in only a matter of **milliseconds** to **minutes**, depending on the target, **if vulnerable**.
+As opposed to the traditional online brute-force attack, implemented in tools like Reaver or Bully which aim to recover the pin in a few hours, this method can get the PIN in only a matter of **seconds** or **minutes**, depending on the target, **if vulnerable**.
 
-![pixiewps_screenshot_1](https://i.imgur.com/nvS69me.png)
+![pixiewps_screenshot_1](https://i.imgur.com/2N2zaZt.png)
 
 Since version 1.4, it can also recover the **WPA-PSK** from a complete passive capture (M1 through M7) for some devices (currently **only some devices** which work with `--mode 3`).
 
@@ -14,8 +14,7 @@ It all started as a project from the community, more details can be found here:
 - [https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool](https://forums.kali.org/showthread.php?25018-Pixiewps-wps-pixie-dust-attack-tool)
 - [https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack)](https://forums.kali.org/showthread.php?24286-WPS-Pixie-Dust-Attack-(Offline-WPS-Attack))
 
-A non-exhaustive list of vulnerable devices (currently unmaintained?):
-- [https://docs.google.com/spreadsheets/d/1tSlbqVQ59kGn8hgmwcPTHUECQ3o9YhXR91A_p7Nnj5Y/edit?pref=2&pli=1#gid=2048815923](https://docs.google.com/spreadsheets/d/1tSlbqVQ59kGn8hgmwcPTHUECQ3o9YhXR91A_p7Nnj5Y/edit?pref=2&pli=1#gid=2048815923)
+You can also visit the [wiki](wiki).
 
 # Requirements
 
@@ -24,9 +23,9 @@ apt-get -y install build-essential
 ```
 
 - Prior versions of **1.2** require [libssl-dev](https://www.openssl.org/)
-- Version **1.4** (and later) make use of multi-threading and require **libpthread**
+- Versions **1.4** and later make use of multi-threading and require **libpthread** ([POSIX threads](https://en.wikipedia.org/wiki/POSIX_Threads))
 
-In version **1.4** (and later) OpenSSL has been re-introduced as optional to achieve better speeds. See the **Build** section.
+OpenSSL has also been re-introduced as optional to achieve better speeds. See the **Build** section.
 
 # Setup
 
@@ -121,9 +120,9 @@ The empty PIN, denoted with `<empty>` can be tested with `-p ""` in Reaver [1.6.
 
 # Supported platforms
 
-Pixiewps can be compiled and installed on a wide variety of platforms including [OpenWrt](https://openwrt.org/) / [LEDE](https://lede-project.org/) and Android.
+Pixiewps can be compiled for a wide variety of platforms including Android. On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
 
-On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
+Since version 1.4.1 it has been included in [OpenWrt](https://openwrt.org/) and [LEDE](https://lede-project.org/) official repositories.
 
 ## Versioning convention
 The version numbering is in the form `1.x.y`, where `x` usually indicates a major release, and `y` a minor release, typically bug fixing or other small changes. Every major release starts with `y = 0` and should be considered unstable in the first hours of publishing, even if not marked as such.
@@ -134,6 +133,7 @@ For a list of changes between one release and the previous refer to [CHANGELOG](
 - The data in input can be formatted with one of the following byte separators: '`:`', '`-`', '` `', or without
 - The most useful tags like `WPS pin` and `WPA-PSK` are denoted with `[+]` or `[-]` in case of failure
 - Pixiewps returns `0` on a successful attempt
+- An option that has been _deprecated_ means that it shouldn't be used anymore and may get removed on a later release
 
 # Contributing
 Since the very first release pixiewps has improved a lot, but it's hard to keep track of every device on the market. We have decided to add an automatic message suggesting that we are interested in the parameters of the device tested by the user.
