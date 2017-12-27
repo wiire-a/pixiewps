@@ -2,19 +2,21 @@
  *  FIPS-180-2 compliant SHA-256 implementation
  *
  *  Copyright (C) 2006-2015, ARM Limited, All Rights Reserved
- *  SPDX-License-Identifier: Apache-2.0
+ *  SPDX-License-Identifier: GPL-2.0
  *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may
- *  not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
  *  This file is part of mbed TLS (https://tls.mbed.org)
  */
@@ -23,17 +25,24 @@
  *
  *  http://csrc.nist.gov/publications/fips/fips180-2/fips180-2.pdf
  */
-
-#include <stdio.h>
+/*
+ * This file was modified for use in pixiewps
+ */
 #include <string.h>
 #include <stdint.h>
 
-#include "sha256.h"
-
-/* Implementation that should never be optimized out by the compiler */
-static void mbedtls_zeroize( void *v, size_t n ) {
-    volatile unsigned char *p = v; while( n-- ) *p++ = 0;
+/**
+ * \brief          SHA-256 context structure
+ */
+typedef struct
+{
+    uint32_t total[2];          /*!< number of bytes processed  */
+    uint32_t state[8];          /*!< intermediate digest state  */
+    unsigned char buffer[64];   /*!< data block being processed */
 }
+mbedtls_sha256_context;
+
+#if !defined(MBEDTLS_SHA256_ALT)
 
 /*
  * 32-bit integer manipulation macros (big endian)
@@ -63,14 +72,6 @@ void mbedtls_sha256_init( mbedtls_sha256_context *ctx )
     memset( ctx, 0, sizeof( mbedtls_sha256_context ) );
 }
 
-void mbedtls_sha256_free( mbedtls_sha256_context *ctx )
-{
-    if( ctx == NULL )
-        return;
-
-    mbedtls_zeroize( ctx, sizeof( mbedtls_sha256_context ) );
-}
-
 void mbedtls_sha256_clone( mbedtls_sha256_context *dst,
                            const mbedtls_sha256_context *src )
 {
@@ -80,37 +81,20 @@ void mbedtls_sha256_clone( mbedtls_sha256_context *dst,
 /*
  * SHA-256 context setup
  */
-void mbedtls_sha256_starts( mbedtls_sha256_context *ctx, int is224 )
+void mbedtls_sha256_starts( mbedtls_sha256_context *ctx )
 {
     ctx->total[0] = 0;
     ctx->total[1] = 0;
 
-    if( is224 == 0 )
-    {
-        /* SHA-256 */
-        ctx->state[0] = 0x6A09E667;
-        ctx->state[1] = 0xBB67AE85;
-        ctx->state[2] = 0x3C6EF372;
-        ctx->state[3] = 0xA54FF53A;
-        ctx->state[4] = 0x510E527F;
-        ctx->state[5] = 0x9B05688C;
-        ctx->state[6] = 0x1F83D9AB;
-        ctx->state[7] = 0x5BE0CD19;
-    }
-    else
-    {
-        /* SHA-224 */
-        ctx->state[0] = 0xC1059ED8;
-        ctx->state[1] = 0x367CD507;
-        ctx->state[2] = 0x3070DD17;
-        ctx->state[3] = 0xF70E5939;
-        ctx->state[4] = 0xFFC00B31;
-        ctx->state[5] = 0x68581511;
-        ctx->state[6] = 0x64F98FA7;
-        ctx->state[7] = 0xBEFA4FA4;
-    }
-
-    ctx->is224 = is224;
+    /* SHA-256 */
+    ctx->state[0] = 0x6A09E667;
+    ctx->state[1] = 0xBB67AE85;
+    ctx->state[2] = 0x3C6EF372;
+    ctx->state[3] = 0xA54FF53A;
+    ctx->state[4] = 0x510E527F;
+    ctx->state[5] = 0x9B05688C;
+    ctx->state[6] = 0x1F83D9AB;
+    ctx->state[7] = 0x5BE0CD19;
 }
 
 #if !defined(MBEDTLS_SHA256_PROCESS_ALT)
@@ -213,6 +197,7 @@ void mbedtls_sha256_process( mbedtls_sha256_context *ctx, const unsigned char da
     for( i = 0; i < 8; i++ )
         ctx->state[i] += A[i];
 }
+#endif /* !MBEDTLS_SHA256_PROCESS_ALT */
 
 /*
  * SHA-256 process buffer
@@ -293,8 +278,8 @@ void mbedtls_sha256_finish( mbedtls_sha256_context *ctx, unsigned char output[32
     PUT_UINT32_BE( ctx->state[5], output, 20 );
     PUT_UINT32_BE( ctx->state[6], output, 24 );
 
-    if( ctx->is224 == 0 )
-        PUT_UINT32_BE( ctx->state[7], output, 28 );
+    /* SHA-256*/
+    PUT_UINT32_BE( ctx->state[7], output, 28 );
 }
 
 #endif /* !MBEDTLS_SHA256_ALT */
@@ -303,13 +288,12 @@ void mbedtls_sha256_finish( mbedtls_sha256_context *ctx, unsigned char output[32
  * output = SHA-256( input buffer )
  */
 void mbedtls_sha256( const unsigned char *input, size_t ilen,
-             unsigned char output[32], int is224 )
+             unsigned char output[32] )
 {
     mbedtls_sha256_context ctx;
 
     mbedtls_sha256_init( &ctx );
-    mbedtls_sha256_starts( &ctx, is224 );
+    mbedtls_sha256_starts( &ctx );
     mbedtls_sha256_update( &ctx, input, ilen );
     mbedtls_sha256_finish( &ctx, output );
-    mbedtls_sha256_free( &ctx );
 }

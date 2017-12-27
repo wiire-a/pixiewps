@@ -5,9 +5,9 @@
 #ifdef USE_OPENSSL
 # include <openssl/sha.h>
 #else
-# include "../mbedtls/sha256.h"
+# include "sha256.c"
 # define SHA256_CTX mbedtls_sha256_context
-# define SHA256_Init(x) do { mbedtls_sha256_init(x); mbedtls_sha256_starts(x, 0); } while(0)
+# define SHA256_Init(x) do { mbedtls_sha256_starts(x); } while(0)
 # define SHA256_Update(x, y, z) mbedtls_sha256_update(x, y, z)
 # define SHA256_Final(y, x) mbedtls_sha256_finish(x, y)
 #endif
@@ -98,7 +98,6 @@ static void hmac_sha256_init(struct hmac_ctx *hctx, const uint8_t *key,
 	SHA256_Init(&hctx->octx);
 	SHA256_Update(&hctx->octx, opad, PAD_SIZE);
 }
-
 
 static void hmac_sha256_yield(const struct hmac_ctx *hctx,
 	const uint8_t *input, size_t ilen, uint8_t *output)

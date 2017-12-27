@@ -10,13 +10,10 @@ LIBS = -lpthread
 ifeq ($(OPENSSL),1)
 LIBS += -lcrypto
 CFLAGS += -DUSE_OPENSSL
-else
-CRYDIR = $(SRCDIR)/mbedtls
-CRYPTO = $(CRYDIR)/sha256.c $(CRYDIR)/md.c $(CRYDIR)/md_wrap.c
 endif
 
 TARGET = pixiewps
-SOURCE = $(SRCDIR)/pixiewps.c $(CRYPTO)
+SOURCE = $(SRCDIR)/pixiewps.c
 
 -include config.mak
 
