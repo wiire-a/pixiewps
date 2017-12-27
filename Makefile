@@ -1,4 +1,4 @@
-CFLAGS = -std=c99 -O3
+CFLAGS = -O3
 
 PREFIX ?= /usr/local
 BINDIR = $(PREFIX)/bin
@@ -8,10 +8,13 @@ SRCDIR = src
 HDRS = $(SRCDIR)/config.h $(SRCDIR)/endianness.h $(SRCDIR)/version.h
 HDRS += $(SRCDIR)/pixiewps.h $(SRCDIR)/utils.h $(SRCDIR)/wps.h
 
+# Internal flags so one can safely override CFLAGS, CPPFLAGS and LDFLAGS
+INTFLAGS = -std=c99
 LIBS = -lpthread
+
 ifeq ($(OPENSSL),1)
 LIBS += -lcrypto
-CFLAGS += -DUSE_OPENSSL
+INTFLAGS += -DUSE_OPENSSL
 endif
 
 TARGET = pixiewps
@@ -24,7 +27,7 @@ SOURCE = $(SRCDIR)/pixiewps.c
 all: $(TARGET)
 
 $(TARGET): $(SOURCE) $(HDRS)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
+	$(CC) $(INTFLAGS) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
 
 install: install-bin install-man
 
