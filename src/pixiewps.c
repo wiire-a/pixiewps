@@ -894,12 +894,6 @@ usage_err:
 		return 0;
 	}
 
-	/* Not all required arguments have been supplied */
-	if (wps->pke == 0 || wps->e_hash1 == 0 || wps->e_hash2 == 0 || wps->e_nonce == 0) {
-		snprintf(wps->error, 256, "\n [!] Not all required arguments have been supplied!\n\n");
-		goto usage_err;
-	}
-
 	/* If --dh-small is selected then no --pkr should be supplied */
 	if (wps->pkr && wps->small_dh_keys) {
 		snprintf(wps->error, 256, "\n [!] Options --dh-small and --pkr are mutually exclusive!\n\n");
@@ -909,6 +903,14 @@ usage_err:
 	/* Either --pkr or --dh-small must be specified */
 	if (!wps->pkr && !wps->small_dh_keys) {
 		snprintf(wps->error, 256, "\n [!] Either --pkr or --dh-small must be specified!\n\n");
+		goto usage_err;
+	}
+
+	/* Not all required arguments have been supplied */
+	if (!wps->pke || !wps->e_hash1 || !wps->e_hash2 || !wps->e_nonce ||
+			(!wps->authkey && !((wps->small_dh_keys || check_small_dh_keys(wps->pkr))
+			&& wps->e_bssid && wps->r_nonce))) {
+		snprintf(wps->error, 256, "\n [!] Not all required arguments have been supplied!\n\n");
 		goto usage_err;
 	}
 
