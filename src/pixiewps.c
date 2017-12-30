@@ -906,9 +906,13 @@ usage_err:
 		goto usage_err;
 	}
 
+	/* Checks done, set small keys internally if --pkr = 2 */
+	if (wps->pkr && check_small_dh_keys(wps->pkr))
+		wps->small_dh_keys = 1;
+
 	/* Not all required arguments have been supplied */
 	if (!wps->pke || !wps->e_hash1 || !wps->e_hash2 || !wps->e_nonce ||
-			(!wps->authkey && !((wps->small_dh_keys || check_small_dh_keys(wps->pkr))
+			(!wps->authkey && !((wps->small_dh_keys || !memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN))
 			&& wps->e_bssid && wps->r_nonce))) {
 		snprintf(wps->error, 256, "\n [!] Not all required arguments have been supplied!\n\n");
 		goto usage_err;
@@ -1005,87 +1009,58 @@ usage_err:
 		}
 	}
 
-	if (wps->small_dh_keys) { /* Small DH keys selected */
-		wps->pkr = malloc(WPS_PKEY_LEN);
-		if (!wps->pkr)
-			goto memory_err;
+	if (wps->small_dh_keys) {
+		if (!wps->pkr) { /* Not supplied, set it */
+			wps->pkr = malloc(WPS_PKEY_LEN); if (!wps->pkr) goto memory_err;
+			memset(wps->pkr, 0, WPS_PKEY_LEN - 1);
+			wps->pkr[WPS_PKEY_LEN - 1] = 0x02;
+		}
+	}
 
-		/* g^A mod p = 2 (g = 2, A = 1, p > 2) */
-		memset(wps->pkr, 0, WPS_PKEY_LEN - 1);
-		wps->pkr[WPS_PKEY_LEN - 1] = 0x02;
+	/* If --authkey not supplied, compute (all the required args already checked) */
+	if (!wps->authkey) {
+		uint8_t buffer[WPS_PKEY_LEN];
+		wps->dhkey = malloc(WPS_HASH_LEN); if (!wps->dhkey) goto memory_err;
+		wps->kdk = malloc(WPS_HASH_LEN);   if (!wps->kdk)   goto memory_err;
 
-		if (!wps->authkey) {
-			if (wps->e_nonce) {
-				if (wps->r_nonce) {
-					if (wps->e_bssid) { /* Compute AuthKey */
-						wps->dhkey = malloc(WPS_HASH_LEN);
-						if (!wps->dhkey)
-							goto memory_err;
-						wps->kdk = malloc(WPS_HASH_LEN);
-						if (!wps->kdk)
-							goto memory_err;
+		if (wps->small_dh_keys) {
 
-						uint8_t *buffer = malloc(WPS_NONCE_LEN * 2 + WPS_BSSID_LEN);
-						if (!buffer)
-							goto memory_err;
+			/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKe) (g = 2, A = 1, p > 2) */
+			sha256(wps->pke, WPS_PKEY_LEN, wps->dhkey);
+		}
+		else if (!memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN)) {
+			size_t pkey_len = WPS_PKEY_LEN;
+			wps->e_key = malloc(WPS_PKEY_LEN); if (!wps->e_key) goto memory_err;
+			SET_RTL_PRIV_KEY(wps->e_key);
 
-						/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKe) (g = 2, A = 1, p > 2) */
-						sha256(wps->pke, WPS_PKEY_LEN, wps->dhkey);
+			/* DHKey = SHA-256(g^(AB) mod p) = SHA-256(PKe^A mod p) = SHA-256(PKr^B mod p) */
+			crypto_mod_exp(wps->pkr, WPS_PKEY_LEN, wps->e_key, WPS_PKEY_LEN, dh_group5_prime, WPS_PKEY_LEN, buffer, &pkey_len);
+			sha256(buffer, WPS_PKEY_LEN, wps->dhkey);
+			free(wps->e_key); /* Do not keep the key for now, maybe in the future */
+		}
 
-						memcpy(buffer, wps->e_nonce, WPS_NONCE_LEN);
-						memcpy(buffer + WPS_NONCE_LEN, wps->e_bssid, WPS_BSSID_LEN);
-						memcpy(buffer + WPS_NONCE_LEN + WPS_BSSID_LEN, wps->r_nonce, WPS_NONCE_LEN);
+		memcpy(buffer, wps->e_nonce, WPS_NONCE_LEN);
+		memcpy(buffer + WPS_NONCE_LEN, wps->e_bssid, WPS_BSSID_LEN);
+		memcpy(buffer + WPS_NONCE_LEN + WPS_BSSID_LEN, wps->r_nonce, WPS_NONCE_LEN);
 
-						/* KDK = HMAC-SHA-256{DHKey}(Enrollee nonce || Enrollee MAC || Registrar nonce) */
-						hmac_sha256(wps->dhkey, WPS_HASH_LEN, buffer, WPS_NONCE_LEN * 2 + WPS_BSSID_LEN, wps->kdk);
+		/* KDK = HMAC-SHA-256{DHKey}(Enrollee nonce || Enrollee MAC || Registrar nonce) */
+		hmac_sha256(wps->dhkey, WPS_HASH_LEN, buffer, WPS_NONCE_LEN * 2 + WPS_BSSID_LEN, wps->kdk);
 
-						uint8_t *nbuffer = realloc(buffer, WPS_HASH_LEN * 3);
-						if (!nbuffer) {
-							free(buffer);
-							goto memory_err;
-						}
-						buffer = nbuffer;
+		/* Key derivation function */
+		kdf(wps->kdk, buffer);
 
-						/* Key derivation function */
-						kdf(wps->kdk, buffer);
+		wps->authkey = malloc(WPS_AUTHKEY_LEN); if (!wps->authkey) goto memory_err;
+		memcpy(wps->authkey, buffer, WPS_AUTHKEY_LEN);
 
-						wps->authkey = malloc(WPS_AUTHKEY_LEN);
-						if (!wps->authkey)
-							goto memory_err;
-
-						memcpy(wps->authkey, buffer, WPS_AUTHKEY_LEN);
-
-						if (wps->verbosity > 2) {
-							wps->wrapkey = malloc(WPS_KEYWRAPKEY_LEN);
-							if (!wps->wrapkey)
-								goto memory_err;
-							wps->emsk = malloc(WPS_EMSK_LEN);
-							if (!wps->emsk)
-								goto memory_err;
-
-							memcpy(wps->wrapkey, buffer + WPS_AUTHKEY_LEN, WPS_KEYWRAPKEY_LEN);
-							memcpy(wps->emsk, buffer + WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN, WPS_EMSK_LEN);
-						}
-						if (wps->verbosity < 3) {
-							free(wps->dhkey);
-							free(wps->kdk);
-						}
-						free(buffer);
-					}
-					else {
-						snprintf(wps->error, 256, "\n [!] Neither --authkey and --e-bssid have been supplied!\n\n");
-						goto usage_err;
-					}
-				}
-				else {
-					snprintf(wps->error, 256, "\n [!] Neither --authkey and --r-nonce have been supplied!\n\n");
-					goto usage_err;
-				}
-			}
-			else {
-				snprintf(wps->error, 256, "\n [!] Neither --authkey and --e-nonce have been supplied!\n\n");
-				goto usage_err;
-			}
+		if (wps->verbosity > 2) { /* Keep the keys to show later on exit */
+			wps->wrapkey = malloc(WPS_KEYWRAPKEY_LEN); if (!wps->wrapkey) goto memory_err;
+			wps->emsk = malloc(WPS_EMSK_LEN);          if (!wps->emsk)    goto memory_err;
+			memcpy(wps->wrapkey, buffer + WPS_AUTHKEY_LEN, WPS_KEYWRAPKEY_LEN);
+			memcpy(wps->emsk, buffer + WPS_AUTHKEY_LEN + WPS_KEYWRAPKEY_LEN, WPS_EMSK_LEN);
+		}
+		else {
+			free(wps->dhkey);
+			free(wps->kdk);
 		}
 	}
 
@@ -1442,7 +1417,7 @@ usage_err:
 				printf("\n [*] Seed ES1: 0x%08x", wps->s1_seed);
 				printf("\n [*] Seed ES2: 0x%08x", wps->s2_seed);
 			}
-			if (wps->dhkey) { /* To see if AuthKey was supplied or not */
+			if (wps->dhkey) { /* To see if AuthKey was supplied or not (verbosity > 2) */
 				printf("\n [*] DHKey:    "); byte_array_print(wps->dhkey, WPS_HASH_LEN);
 				printf("\n [*] KDK:      "); byte_array_print(wps->kdk, WPS_HASH_LEN);
 				printf("\n [*] AuthKey:  "); byte_array_print(wps->authkey, WPS_AUTHKEY_LEN);
