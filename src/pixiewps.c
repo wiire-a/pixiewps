@@ -862,11 +862,12 @@ usage_err:
 		}
 		printf("\n\n [*] Time taken: %lu s %lu ms\n\n", diff.tv_sec, diff.tv_usec / 1000);
 
+		if (wps->e_hash1) free(wps->e_hash1);
+		if (wps->e_hash2) free(wps->e_hash2);
+
 		if (decrypted5) {
 			free(decrypted5);
 			if (wps->e_hash1 && wps->e_hash2) {
-				free(wps->e_hash1);
-				free(wps->e_hash2);
 				free(wps->e_s1);
 				free(wps->e_s2);
 				free(wps->psk1);
