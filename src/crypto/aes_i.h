@@ -11,6 +11,13 @@
  *
  * See README and COPYING for more details.
  */
+/*
+ * This file was modified for use in pixiewps
+ * - Added casts to u32 for 'rcons' and 'Td4s' which are of type uint8_t*,
+ *   so their elements, before being shifted,
+ *   are promoted to int (not to unsigned int) unless explicitly casted,
+ *   due to integer promotion rules of the C language
+ */
 #ifndef AES_I_H
 #define AES_I_H
 
@@ -66,7 +73,8 @@ extern const u8 rcons[10];
 
 #else /* AES_SMALL_TABLES */
 
-#define RCON(i) (rcons[(i)] << 24)
+/* NOTE: Added cast to u32 ('rcons' is of type uint8_t*) */
+#define RCON(i) ((u32)rcons[(i)] << 24)
 
 static inline u32 rotr(u32 val, int bits)
 {
@@ -91,7 +99,8 @@ static inline u32 rotr(u32 val, int bits)
 #define TD1(i) rotr(Td0[((i) >> 16) & 0xff], 8)
 #define TD2(i) rotr(Td0[((i) >> 8) & 0xff], 16)
 #define TD3(i) rotr(Td0[(i) & 0xff], 24)
-#define TD41(i) (Td4s[((i) >> 24) & 0xff] << 24)
+/* NOTE: Added cast to u32 ('Td4s' is of type uint8_t*) */
+#define TD41(i) ((u32)Td4s[((i) >> 24) & 0xff] << 24)
 #define TD42(i) (Td4s[((i) >> 16) & 0xff] << 16)
 #define TD43(i) (Td4s[((i) >> 8) & 0xff] << 8)
 #define TD44(i) (Td4s[(i) & 0xff])
