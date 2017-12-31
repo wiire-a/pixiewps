@@ -18,6 +18,9 @@ INTFLAGS += -DUSE_OPENSSL
 endif
 
 TARGET = pixiewps
+TFMSRC = $(sort $(wildcard $(SRCDIR)/crypto/tfm/*.c))
+TFMOBJS = $(TFMSRC:.c=.o)
+
 SOURCE = $(SRCDIR)/pixiewps.c
 
 -include config.mak
@@ -26,8 +29,11 @@ SOURCE = $(SRCDIR)/pixiewps.c
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCE) $(HDRS)
-	$(CC) $(INTFLAGS) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS)
+$(TARGET): $(SOURCE) $(HDRS) $(TFMOBJS)
+	$(CC) $(INTFLAGS) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS) $(TFMOBJS)
+
+$(SRCDIR)/crypto/tfm/%.o: $(SRCDIR)/crypto/tfm/%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(SRCDIR)/crypto/tfm -c -o $@ $<
 
 install: install-bin install-man
 
@@ -43,4 +49,4 @@ strip: $(TARGET)
 	strip $(TARGET)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(TFMOBJS)
