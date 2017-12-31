@@ -776,7 +776,7 @@ usage_err:
 		}
 
 		uint_fast8_t pfound = PIN_ERROR;
-		vtag_t *vtag;
+		struct ie_vtag *vtag;
 		if (decrypted5 && decrypted7 && wps->e_hash1 && wps->e_hash2) {
 			wps->e_s1 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s1)      goto memory_err;
 			wps->e_s2 = malloc(WPS_SECRET_NONCE_LEN); if (!wps->e_s2)      goto memory_err;

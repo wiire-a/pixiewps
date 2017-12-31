@@ -57,13 +57,12 @@ struct ie_vtag {
 #define WPS_TAG_KEYWRAP_AUTH_LEN 8
 	uint8_t data[];
 };
-typedef struct ie_vtag vtag_t;
-#define	VTAG_SIZE (sizeof(vtag_t))
+#define	VTAG_SIZE (sizeof(struct ie_vtag))
 
-vtag_t *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen)
+struct ie_vtag *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen)
 {
 	uint8_t *vid = vidp;
-	vtag_t *vtag = vtagp;
+	struct ie_vtag *vtag = vtagp;
 	while (0 < vtagl) {
 		const int len = end_ntoh16(vtag->len);
 		if (vid && memcmp(vid, &vtag->id, 2) != 0)
@@ -73,7 +72,7 @@ vtag_t *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen)
 
 next_vtag:
 		vtagl -= len + VTAG_SIZE;
-		vtag = (vtag_t *)((uint8_t *)vtag + len + VTAG_SIZE);
+		vtag = (struct ie_vtag *)((uint8_t *)vtag + len + VTAG_SIZE);
 	}
 	return NULL;
 }
