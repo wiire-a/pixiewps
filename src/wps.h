@@ -56,7 +56,7 @@ struct ie_vtag {
 #define WPS_TAG_NET_KEY_IDX_LEN  1
 #define WPS_TAG_KEYWRAP_AUTH_LEN 8
 	uint8_t data[];
-};
+} __attribute__((packed));
 #define	VTAG_SIZE (sizeof(struct ie_vtag))
 
 struct ie_vtag *find_vtag(void *vtagp, int vtagl, void *vidp, int vlen)
