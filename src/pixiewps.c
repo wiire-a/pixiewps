@@ -27,7 +27,6 @@
 #include <pthread.h>
 #include <limits.h>
 #include <assert.h>
-#include <stdarg.h> /* libtommath.c */
 #if defined(_WIN32) || defined(__WIN32__)
 # include <windows.h>
 #endif
