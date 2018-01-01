@@ -20,7 +20,6 @@ TFM_SRCS = \
 ./fp_mul_2.c \
 ./fp_mul_2d.c \
 ./fp_mul_comba.c \
-./fp_mul_comba_small_set.c \
 ./fp_mul_d.c \
 ./fp_mulmod.c \
 ./fp_read_unsigned_bin.c \
@@ -29,7 +28,6 @@ TFM_SRCS = \
 ./fp_set.c \
 ./fp_sqr.c \
 ./fp_sqr_comba_generic.c \
-./fp_sqr_comba_small_set.c \
 ./fp_sub.c \
 ./fp_to_unsigned_bin.c \
 ./fp_unsigned_bin_size.c \

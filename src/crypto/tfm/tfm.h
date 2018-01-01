@@ -44,7 +44,7 @@
    Enable these if you are going to be doing a lot of small (<= 16 digit) multiplications say in ECC
    Or if you're on a 64-bit machine doing RSA as a 1024-bit integer == 16 digits ;-)
  */
-#define TFM_SMALL_SET
+/* #define TFM_SMALL_SET */
 
 /* do we want huge code
    Enable these if you are doing 20, 24, 28, 32, 48, 64 digit multiplications (useful for RSA)
