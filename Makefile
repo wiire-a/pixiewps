@@ -18,7 +18,9 @@ INTFLAGS += -DUSE_OPENSSL
 endif
 
 TARGET = pixiewps
-TFMSRC = $(sort $(wildcard $(SRCDIR)/crypto/tfm/*.c))
+
+include $(SRCDIR)/crypto/tfm/sources.mak
+TFMSRC = $(patsubst ./%,$(SRCDIR)/crypto/tfm/%,$(TFM_SRCS))
 TFMOBJS = $(TFMSRC:.c=.o)
 
 SOURCE = $(SRCDIR)/pixiewps.c
