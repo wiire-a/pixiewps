@@ -16,6 +16,10 @@
 #include <ctype.h>
 #include <limits.h>
 
+#if defined(__TINYC__) && __TINYC__ <= 927
+#define TFM_NO_ASM
+#endif
+
 /* 0xMaMiPaDe
  * Major
  * Minor
