@@ -57,4 +57,4 @@ strip: $(TARGET)
 	strip $(TARGET)
 
 clean:
-	rm -f $(TARGET) $(TFMOBJS)
+	rm -f $(TARGET) $(TFMOBJS) $(TCOBJS)
