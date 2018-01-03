@@ -120,7 +120,7 @@ The empty PIN, denoted with `<empty>` can be tested with `-p ""` in Reaver [1.6.
 
 # Supported platforms
 
-Pixiewps can be compiled for a wide variety of platforms including Android. On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
+Pixiewps can be compiled for a wide variety of platforms. On Windows it can be compiled with [MinGW](http://www.mingw.org/). Be sure to have installed phtread support.
 
 Since version 1.4.1 it has been included in [OpenWrt](https://openwrt.org/) and [LEDE](https://lede-project.org/) official repositories.
 
