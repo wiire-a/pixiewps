@@ -9,7 +9,7 @@ HDRS = $(SRCDIR)/config.h $(SRCDIR)/endianness.h $(SRCDIR)/version.h
 HDRS += $(SRCDIR)/pixiewps.h $(SRCDIR)/utils.h $(SRCDIR)/wps.h
 
 # Internal flags so one can safely override CFLAGS, CPPFLAGS and LDFLAGS
-INTFLAGS = -std=c99
+INTFLAGS = -std=c99 -I $(SRCDIR)/crypto/tc
 LIBS = -lpthread
 
 ifeq ($(OPENSSL),1)
