@@ -5,11 +5,11 @@
 #ifdef USE_OPENSSL
 # include <openssl/sha.h>
 #else
-# include "sha256.c"
-# define SHA256_CTX mbedtls_sha256_context
-# define SHA256_Init(x) do { mbedtls_sha256_starts(x); } while(0)
-# define SHA256_Update(x, y, z) mbedtls_sha256_update(x, y, z)
-# define SHA256_Final(y, x) mbedtls_sha256_finish(x, y)
+# include "tc/sha256.c"
+# define SHA256_CTX hash_state
+# define SHA256_Init(x) do { sha256_init(x); } while(0)
+# define SHA256_Update(x, y, z) sha256_process(x, y, z)
+# define SHA256_Final(y, x) sha256_done(x, y)
 #endif
 
 #define PAD_SIZE  64
