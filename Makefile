@@ -22,6 +22,9 @@ TARGET = pixiewps
 include $(SRCDIR)/crypto/tfm/sources.mak
 TFMSRC = $(patsubst ./%,$(SRCDIR)/crypto/tfm/%,$(TFM_SRCS))
 TFMOBJS = $(TFMSRC:.c=.o)
+TC_SRCS = ./aes_cbc.c ./aes.c
+TCSRC = $(patsubst ./%,$(SRCDIR)/crypto/tc/%,$(TC_SRCS))
+TCOBJS = $(TCSRC:.c=.o)
 
 SOURCE = $(SRCDIR)/pixiewps.c
 
@@ -31,11 +34,14 @@ SOURCE = $(SRCDIR)/pixiewps.c
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCE) $(HDRS) $(TFMOBJS)
-	$(CC) $(INTFLAGS) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS) $(TFMOBJS)
+$(TARGET): $(SOURCE) $(HDRS) $(TFMOBJS) $(TCOBJS)
+	$(CC) $(INTFLAGS) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS) $(TFMOBJS) $(TCOBJS)
 
 $(SRCDIR)/crypto/tfm/%.o: $(SRCDIR)/crypto/tfm/%.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(SRCDIR)/crypto/tfm -c -o $@ $<
+
+$(SRCDIR)/crypto/tc/%.o: $(SRCDIR)/crypto/tc/%.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(SRCDIR)/crypto/tc -c -o $@ $<
 
 install: install-bin install-man
 
