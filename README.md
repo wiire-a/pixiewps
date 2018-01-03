@@ -141,8 +141,7 @@ Since the very first release pixiewps has improved a lot, but it's hard to keep 
 # Acknowledgements
 
 - Part of the code was inspired by Bully by Brian Purcell
-- Some files were taken from [wpa_supplicant](https://w1.fi/wpa_supplicant/) written by Jouni Malinen
-- The hashing crypto libraries were taken (and modified) from [mbed TLS](https://tls.mbed.org/)
+- The crypto and bignum libraries were taken from [LibTomCrypt](https://github.com/libtom/libtomcrypt) and [TomsFastMath](https://github.com/libtom/tomsfastmath)
 - Endianness detection and conversion is from [rofl0r/endianness.h](https://github.com/rofl0r/endianness.h)
 - See [contributors](https://github.com/wiire-a/pixiewps/graphs/contributors) for a list of everyone that has contributed
 - Huge thanks to `kcdtv`, `rofl0r` and `binarymaster` for helping and testing
