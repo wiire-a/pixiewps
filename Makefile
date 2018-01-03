@@ -22,7 +22,7 @@ TARGET = pixiewps
 include $(SRCDIR)/crypto/tfm/sources.mak
 TFMSRC = $(patsubst ./%,$(SRCDIR)/crypto/tfm/%,$(TFM_SRCS))
 TFMOBJS = $(TFMSRC:.c=.o)
-TC_SRCS = ./aes_cbc.c ./aes.c
+TC_SRCS = ./aes_cbc.c ./aes.c ./sha256.c
 TCSRC = $(patsubst ./%,$(SRCDIR)/crypto/tc/%,$(TC_SRCS))
 TCOBJS = $(TCSRC:.c=.o)
 
