@@ -5,7 +5,7 @@
 #ifdef USE_OPENSSL
 # include <openssl/sha.h>
 #else
-# include "tc/tomcrypt.h"
+# include "tc/sha256.c"
 # define SHA256_CTX hash_state
 # define SHA256_Init(x) do { sha256_init(x); } while(0)
 # define SHA256_Update(x, y, z) sha256_process(x, y, z)
