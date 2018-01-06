@@ -859,7 +859,7 @@ usage_err:
 		else {
 			printf("\n [-] WPA-PSK not found!");
 		}
-		printf("\n\n [*] Time taken: %lu s %lu ms\n\n", diff.tv_sec, diff.tv_usec / 1000);
+		printf("\n\n [*] Time taken: %lu s %lu ms\n\n", (unsigned long)diff.tv_sec, (unsigned long)(diff.tv_usec / 1000));
 
 		if (wps->e_hash1) free(wps->e_hash1);
 		if (wps->e_hash2) free(wps->e_hash2);
@@ -1440,7 +1440,7 @@ usage_err:
 	else {
 		printf("\n [-] WPS pin not found!");
 	}
-	printf("\n\n [*] Time taken: %lu s %lu ms\n\n", diff.tv_sec, diff.tv_usec / 1000);
+	printf("\n\n [*] Time taken: %lu s %lu ms\n\n", (unsigned long)diff.tv_sec, (unsigned long)(diff.tv_usec / 1000));
 
 	if (wps->warning) {
 		printf("%s", wps->warning);
