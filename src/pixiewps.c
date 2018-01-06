@@ -1448,15 +1448,13 @@ usage_err:
 	}
 
 	if (found_p_mode == NONE) {
-		if ((!memcmp(wps->pke, wps_rtl_pke, WPS_PKEY_LEN) &&
-				((wps->e_nonce[0] & 0x80) || (wps->e_nonce[4] & 0x80) || (wps->e_nonce[8] & 0x80) || (wps->e_nonce[12] & 0x80))) ||
-				(!memcmp(wps->e_nonce, "\x00\x00", 2) && !memcmp(wps->e_nonce + 4, "\x00\x00", 2)) ||
+		if ((!memcmp(wps->e_nonce, "\x00\x00", 2) && !memcmp(wps->e_nonce + 4, "\x00\x00", 2)) ||
 				(!memcmp(wps->e_nonce + 2, "\x00\x00", 2) && !memcmp(wps->e_nonce + 6, "\x00\x00", 2)) ||
 				(wps->e_nonce[0] == 0 && wps->e_nonce[4] == 0 && wps->e_nonce[8] == 0 && wps->e_nonce[12] == 0) ||
 				(wps->e_nonce[3] == 0 && wps->e_nonce[7] == 0 && wps->e_nonce[11] == 0 && wps->e_nonce[15] == 0))
 			printf(" " STR_CONTRIBUTE "\n\n");
 	}
-	else if (found_p_mode == ECOS_SIMPLE || found_p_mode == ECOS_SIMPLEST || found_p_mode == ECOS_KNUTH) {
+	else if (found_p_mode == ECOS_SIMPLEST || found_p_mode == ECOS_KNUTH) {
 		printf(" " STR_CONTRIBUTE "\n\n");
 	}
 
