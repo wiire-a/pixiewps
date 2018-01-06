@@ -13,7 +13,8 @@
 void fp_mul(fp_int *A, fp_int *B, fp_int *C)
 {
     int   y, old_used;
-#if FP_SIZE >= 48
+#if FP_SIZE >= 48 && (defined(TFM_MUL24) || defined(TFM_MUL28) || \
+        defined(TFM_MUL32) || defined(TFM_MUL48) || defined(TFM_MUL64))
     int   yy;
 #endif
 
@@ -26,7 +27,8 @@ void fp_mul(fp_int *A, fp_int *B, fp_int *C)
     }
 
      y  = MAX(A->used, B->used);
-#if FP_SIZE >= 48
+#if FP_SIZE >= 48 && (defined(TFM_MUL24) || defined(TFM_MUL28) || \
+        defined(TFM_MUL32) || defined(TFM_MUL48) || defined(TFM_MUL64))
      yy = MIN(A->used, B->used);
 #endif
     /* pick a comba (unrolled 4/8/16/32 x or rolled) based on the size
