@@ -285,10 +285,16 @@
    /* this is to make porting into LibTomCrypt easier :-) */
 #ifndef CRYPT
    #if defined(_MSC_VER) || defined(__BORLANDC__)
-      typedef unsigned __int64   ulong64;
+      #ifndef LTC_ULONG64
+         #define LTC_ULONG64
+         typedef unsigned __int64   ulong64;
+      #endif
       typedef signed __int64     long64;
    #else
-      typedef unsigned long long ulong64;
+      #ifndef LTC_ULONG64
+         #define LTC_ULONG64
+         typedef unsigned long long ulong64;
+      #endif
       typedef signed long long   long64;
    #endif /* defined(_MSC_VER) ... */
 #endif /* CRYPT */

@@ -197,10 +197,16 @@ LTC_EXPORT int   LTC_CALL XSTRCMP(const char *s1, const char *s2);
 /* ulong64: 64-bit data type */
 #ifdef _MSC_VER
    #define CONST64(n) n ## ui64
-   typedef unsigned __int64 ulong64;
+   #ifndef LTC_ULONG64
+     #define LTC_ULONG64
+     typedef unsigned __int64 ulong64;
+   #endif
 #else
    #define CONST64(n) n ## ULL
-   typedef unsigned long long ulong64;
+   #ifndef LTC_ULONG64
+     #define LTC_ULONG64
+     typedef unsigned long long ulong64;
+   #endif
 #endif
 
 /* ulong32: "32-bit at least" data type */
