@@ -197,7 +197,7 @@ static unsigned char ralink_randbyte_backwards(struct ralink_randstate *state)
 	return r;
 }
 
-static void ralink_randbyte_backbytes(struct ralink_randstate *state, const int num_bytes)
+/* static void ralink_randbyte_backbytes(struct ralink_randstate *state, const int num_bytes)
 {
 	uint32_t lfsr = bit_revert(state->sreg);
 	int k = 8 * num_bytes;
@@ -208,7 +208,7 @@ static void ralink_randbyte_backbytes(struct ralink_randstate *state, const int 
 		lfsr |= lsb_mask & 0x80000000;
 	}
 	state->sreg = bit_revert(lfsr);
-}
+} */
 
 static int crack_rt(uint32_t start, uint32_t end, uint32_t *result)
 {
