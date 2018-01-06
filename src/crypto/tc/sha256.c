@@ -9,9 +9,6 @@
 
 #include "tomcrypt.h"
 
-#undef LTC_ARGCHK
-#define LTC_ARGCHK(X) do {} while(0)
-
 /* Various logical functions */
 #define Ch(x,y,z)       (z ^ (x & (y ^ z)))
 #define Maj(x,y,z)      (((x | y) & z) | (x & y))
@@ -205,4 +202,3 @@ int sha256_done(hash_state * md, unsigned char *out)
     }
     return CRYPT_OK;
 }
-

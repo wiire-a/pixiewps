@@ -8,9 +8,6 @@
  */
 #include "tomcrypt.h"
 
-#undef LTC_ARGCHK
-#define LTC_ARGCHK(X) do {} while(0)
-
 /**
    @file cbc_start.c
    CBC implementation, start chain, Tom St Denis

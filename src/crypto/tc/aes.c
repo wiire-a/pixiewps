@@ -30,9 +30,6 @@
 
 #include "tomcrypt.h"
 
-#undef LTC_ARGCHK
-#define LTC_ARGCHK(X) do {} while(0)
-
 #define SETUP    rijndael_setup
 #define ECB_ENC  rijndael_ecb_encrypt
 #define ECB_DEC  rijndael_ecb_decrypt
@@ -416,4 +413,3 @@ int ECB_KS(int *keysize)
       return CRYPT_OK;
    }
 }
-
