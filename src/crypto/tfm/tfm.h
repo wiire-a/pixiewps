@@ -273,7 +273,10 @@
 #if defined(FP_64BIT)
    /* for GCC only on supported platforms */
 #ifndef CRYPT
-   typedef unsigned long long ulong64;
+   #ifndef LTC_ULONG64
+      #define LTC_ULONG64
+      typedef unsigned long long ulong64;
+   #endif
 #endif /* CRYPT */
 
    typedef ulong64            fp_digit;
