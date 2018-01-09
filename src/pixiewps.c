@@ -51,7 +51,7 @@
 
 #define GLIBC_MAX_GEN 4
 #include "random/glibc_random.c"
-#include "random/glibc_random_lazy.c"
+#include "random/glibc_random_yura.c"
 
 static uint32_t ecos_rand_simplest(uint32_t *seed);
 static uint32_t ecos_rand_simple(uint32_t *seed);
@@ -107,15 +107,13 @@ static struct job_control {
 
 static void crack_thread_rtl(struct crack_job *j)
 {
-	struct glibc_lazyprng glibc_lazyprng;
 	uint32_t seed = j->start;
 	uint32_t limit = job_control.end;
 	uint32_t tmp[4];
 
 	while (!job_control.nonce_seed) {
-		glibc_lazyseed(&glibc_lazyprng, seed);
-		if (glibc_rand1(&glibc_lazyprng) == job_control.randr_enonce[0]) {
-			if (!memcmp(glibc_randfill(&glibc_lazyprng, tmp), job_control.randr_enonce, WPS_NONCE_LEN)) {
+		if (glibc_fast_seed(seed) == job_control.randr_enonce[0]) {
+			if (!memcmp(glibc_fast_nonce(seed, tmp), job_control.randr_enonce, WPS_NONCE_LEN)) {
 				job_control.nonce_seed = seed;
 				DEBUG_PRINT("Seed found (%10u)", seed);
 			}
