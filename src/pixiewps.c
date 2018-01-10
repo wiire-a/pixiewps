@@ -45,13 +45,10 @@
 #include "crypto/crypto_internal-modexp.c"
 #include "crypto/hmac_sha256.c"
 #include "crypto/tc/aes_cbc.h"
+#include "random/glibc_random_yura.c"
 #include "utils.h"
 #include "wps.h"
 #include "version.h"
-
-#define GLIBC_MAX_GEN 4
-#include "random/glibc_random.c"
-#include "random/glibc_random_yura.c"
 
 static uint32_t ecos_rand_simplest(uint32_t *seed);
 static uint32_t ecos_rand_simple(uint32_t *seed);
@@ -362,16 +359,26 @@ unsigned int hardware_concurrency()
 
 static void rtl_nonce_fill(uint8_t *nonce, uint32_t seed)
 {
-	struct glibc_prng glibc_prng;
-	int i;
 	uint8_t *ptr = nonce;
+	uint32_t word0 = 0, word1 = 0, word2 = 0, word3 = 0;
 
-	glibc_seed(&glibc_prng, seed);
+	for (int j = 0; j < 31; j++) {
+		word0 += seed * glibc_seed_tbl[j + 3];
+		word1 += seed * glibc_seed_tbl[j + 2];
+		word2 += seed * glibc_seed_tbl[j + 1];
+		word3 += seed * glibc_seed_tbl[j + 0];
 
-	for (i = 0; i < 4; i++, ptr += 4) {
-		uint32_t be = end_htobe32(glibc_rand(&glibc_prng));
-		memcpy(ptr, &be, sizeof be);
+		/* This does: seed = (16807LL * seed) % 0x7fffffff
+		   using the sum of digits method which works for mod N, base N+1 */
+		const uint64_t p = 16807ULL * seed; /* Seed is always positive (31 bits) */
+		seed = (p >> 31) + (p & 0x7fffffff);
 	}
+
+	uint32_t be;
+	be = end_htobe32(word0 >> 1); memcpy(ptr,      &be, sizeof be);
+	be = end_htobe32(word1 >> 1); memcpy(ptr +  4, &be, sizeof be);
+	be = end_htobe32(word2 >> 1); memcpy(ptr +  8, &be, sizeof be);
+	be = end_htobe32(word3 >> 1); memcpy(ptr + 12, &be, sizeof be);
 }
 
 static int find_rtl_es1(struct global *wps, char *pin, uint8_t *nonce_buf, uint32_t seed)

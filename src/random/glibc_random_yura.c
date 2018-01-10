@@ -26,12 +26,8 @@ static inline uint32_t *glibc_fast_nonce(uint32_t seed, uint32_t *dest)
 
 		/* This does: seed = (16807LL * seed) % 0x7fffffff
 		   using the sum of digits method which works for mod N, base N+1 */
-		const uint64_t p = 16807ULL * seed;
-		const uint64_t m = (p >> 31) + (p & 0x7fffffff);
-
-		/* The result might still not fit in 31 bits, if not, repeat
-		   (conditional seems to make it slightly faster) */
-		seed = (m & 0xffffffff80000000) ? ((m >> 31) + (m & 0x7fffffff)) : m;
+		const uint64_t p = 16807ULL * seed; /* Seed is always positive (31 bits) */
+		seed = (p >> 31) + (p & 0x7fffffff);
 	}
 	dest[0] = word0 >> 1;
 	dest[1] = word1 >> 1;
@@ -44,17 +40,13 @@ static inline uint32_t glibc_fast_seed(uint32_t seed)
 {
 	uint32_t word0 = 0;
 
-	for (int j = 0; j < 31; j++) {
-		word0 += seed * glibc_seed_tbl[j + 3];
+	for (int j = 3; j < 31 + 3 - 1; j++) {
+		word0 += seed * glibc_seed_tbl[j];
 
 		/* This does: seed = (16807LL * seed) % 0x7fffffff
 		   using the sum of digits method which works for mod N, base N+1 */
-		const uint64_t p = 16807ULL * seed;
-		const uint64_t m = (p >> 31) + (p & 0x7fffffff);
-
-		/* The result might still not fit in 31 bits, if not, repeat
-		   (conditional seems to make it slightly faster) */
-		seed = (m & 0xffffffff80000000) ? ((m >> 31) + (m & 0x7fffffff)) : m;
+		const uint64_t p = 16807ULL * seed; /* Seed is always positive (31 bits) */
+		seed = (p >> 31) + (p & 0x7fffffff);
 	}
-	return word0 >> 1;
+	return (word0 + seed * glibc_seed_tbl[33]) >> 1;
 }
