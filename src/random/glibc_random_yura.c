@@ -18,6 +18,11 @@ static inline uint32_t *glibc_fast_nonce(uint32_t seed, uint32_t *dest)
 {
 	uint32_t word0 = 0, word1 = 0, word2 = 0, word3 = 0;
 
+#ifdef PWPS_UNERRING
+	if      (seed == 0x7fffffff) seed = 0x13f835f3;
+	else if (seed == 0xfffffffe) seed = 0x5df735f1;
+#endif
+
 	for (int j = 0; j < 31; j++) {
 		word0 += seed * glibc_seed_tbl[j + 3];
 		word1 += seed * glibc_seed_tbl[j + 2];
@@ -41,6 +46,11 @@ static inline uint32_t *glibc_fast_nonce(uint32_t seed, uint32_t *dest)
 static inline uint32_t glibc_fast_seed(uint32_t seed)
 {
 	uint32_t word0 = 0;
+
+#ifdef PWPS_UNERRING
+	if      (seed == 0x7fffffff) seed = 0x13f835f3;
+	else if (seed == 0xfffffffe) seed = 0x5df735f1;
+#endif
 
 	for (int j = 3; j < 31 + 3 - 1; j++) {
 		word0 += seed * glibc_seed_tbl[j];
