@@ -26,7 +26,9 @@ static inline uint32_t *glibc_fast_nonce(uint32_t seed, uint32_t *dest)
 
 		/* This does: seed = (16807LL * seed) % 0x7fffffff
 		   using the sum of digits method which works for mod N, base N+1 */
-		const uint64_t p = 16807ULL * seed; /* Seed is always positive (31 bits) */
+		/* Doesn't work for seed = 0x7fffffff or 0xfffffffe */
+		uint64_t p = 16807ULL * seed;
+		p = (p >> 31) + (p & 0x7fffffff);
 		seed = (p >> 31) + (p & 0x7fffffff);
 	}
 	dest[0] = word0 >> 1;
@@ -45,7 +47,9 @@ static inline uint32_t glibc_fast_seed(uint32_t seed)
 
 		/* This does: seed = (16807LL * seed) % 0x7fffffff
 		   using the sum of digits method which works for mod N, base N+1 */
-		const uint64_t p = 16807ULL * seed; /* Seed is always positive (31 bits) */
+		/* Doesn't work for seed = 0x7fffffff or 0xfffffffe */
+		uint64_t p = 16807ULL * seed;
+		p = (p >> 31) + (p & 0x7fffffff);
 		seed = (p >> 31) + (p & 0x7fffffff);
 	}
 	return (word0 + seed * glibc_seed_tbl[33]) >> 1;
