@@ -2,8 +2,22 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- Huge performance optimizations (`--mode 1,3`) @1yura.
+
 ### Fixed
+- Segmentation fault when `--authkey` is not supplied.
+- Issue with PRNG bruteforce (`--mode 2`).
+- Incorrect N1 seed displayed (`--mode 2`).
 - Incorrect seeds displayed when PRNG is not bruteforced (`--mode 3`).
+
+### Changed
+- Switched from mbedtls and libtommath to libtomcrypt and tomsfastmath @rofl0r.
+- Moved Makefile to top directory.
+- Added installation of man page on `make install`.
+
+### Removed
+- Android.mk
 
 ## [1.4.1] - 2017-12-04
 ### Fixed
