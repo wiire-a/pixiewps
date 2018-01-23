@@ -126,6 +126,7 @@ struct global {
 	uint8_t mode_auto;
 	uint8_t bruteforce;
 	uint8_t anylength;
+	uint8_t nonce_match;
 	int jobs;
 	int verbosity;
 	char *error;
