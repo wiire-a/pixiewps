@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
+## [1.4.2] - 2018-01-25
 ### Added
 - Huge performance optimizations (`--mode 1,3`) @1yura.
 
