@@ -32,7 +32,10 @@ SOURCE = $(SRCDIR)/pixiewps.c
 
 .PHONY: all install install-bin install-man strip clean
 
-all: $(TARGET)
+all: $(TARGET) pixiewrapper
+
+pixiewrapper: $(SRCDIR)/pixiewrapper.o
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 $(TARGET): $(SOURCE) $(HDRS) $(TFMOBJS) $(TCOBJS)
 	$(CC) $(INTFLAGS) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS) $(TFMOBJS) $(TCOBJS)
