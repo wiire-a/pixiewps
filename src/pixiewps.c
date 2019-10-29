@@ -79,6 +79,8 @@ static const struct option long_options[] = {
 	{ "mode",      required_argument, 0,  1  },
 	{ "start",     required_argument, 0,  2  },
 	{ "end",       required_argument, 0,  3  },
+	{ "cstart",    required_argument, 0,  4  },
+	{ "cend",      required_argument, 0,  5  },
 	{ "m5-enc",    required_argument, 0, '5' },
 	{ "m7-enc",    required_argument, 0, '7' },
 	{  0,          no_argument,       0, 'h' },
@@ -656,6 +658,18 @@ memory_err:
 						snprintf(wps->error, 256, "\n [!] Bad ending point -- %s\n\n", optarg);
 						goto usage_err;
 					}
+					break;
+				}
+				goto usage_err;
+			case  4 :
+				if (!strcmp("cstart", long_options[long_index].name)) {
+					start_p = strtol(optarg, 0, 10);
+					break;
+				}
+				goto usage_err;
+			case  5 :
+				if (!strcmp("cend", long_options[long_index].name)) {
+					end_p = strtol(optarg, 0, 10);
 					break;
 				}
 				goto usage_err;

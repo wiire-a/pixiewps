@@ -164,6 +164,8 @@ char usage[] =
 	"   --mode N[,... N]  : Mode selection, comma separated           [Auto]\n"
 	"   --start [mm/]yyyy : Starting date             (only mode 3) [+1 day]\n"
 	"   --end   [mm/]yyyy : Ending date               (only mode 3) [-1 day]\n"
+	"   --cstart N        : Starting date (time_t)    (only mode 3)\n"
+	"   --cend   N        : Ending date   (time_t)    (only mode 3)\n"
 	"   -f, --force       : Bruteforce full range     (only mode 3)\n"
 	"\n"
 	" Miscellaneous arguments:\n"
