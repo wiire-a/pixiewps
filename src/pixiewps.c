@@ -604,7 +604,7 @@ memory_err:
 					struct tm ts;
 					char buffer[30];
 					r_time = t_current.tv_sec;
-					ts = *gmtime(&r_time);
+					gmtime_r(&r_time, &ts);
 					strftime(buffer, 30, "%c", &ts);
 					fprintf(stderr, "\n ");
 					printf("Pixiewps %s", LONG_VERSION); fflush(stdout);
@@ -1272,11 +1272,11 @@ usage_err:
 						{
 							struct tm ts;
 							char buffer[30];
-							ts = *gmtime(&wps->start);
+							gmtime_r(&wps->start, &ts);
 							strftime(buffer, 30, "%c", &ts);
 							printf("\n [DEBUG] %s:%d:%s(): Start: %10lu (%s UTC)",
 								__FILE__, __LINE__, __func__, (unsigned long) wps->start, buffer);
-							ts = *gmtime(&wps->end);
+							gmtime_r(&wps->end, &ts);
 							strftime(buffer, 30, "%c", &ts);
 							printf("\n [DEBUG] %s:%d:%s(): End:   %10lu (%s UTC)",
 								__FILE__, __LINE__, __func__, (unsigned long) wps->end, buffer);
@@ -1431,17 +1431,17 @@ usage_err:
 
 					printf("\n [*] Seed N1:  %u", wps->nonce_seed);
 					seed_time = wps->nonce_seed;
-					ts = *gmtime(&seed_time);
+					gmtime_r(&seed_time, &ts);
 					strftime(buffer, 30, "%c", &ts);
 					printf(" (%s UTC)", buffer);
 					printf("\n [*] Seed ES1: %u", wps->s1_seed);
 					seed_time = wps->s1_seed;
-					ts = *gmtime(&seed_time);
+					gmtime_r(&seed_time, &ts);
 					strftime(buffer, 30, "%c", &ts);
 					printf(" (%s UTC)", buffer);
 					printf("\n [*] Seed ES2: %u", wps->s2_seed);
 					seed_time = wps->s2_seed;
-					ts = *gmtime(&seed_time);
+					gmtime_r(&seed_time, &ts);
 					strftime(buffer, 30, "%c", &ts);
 					printf(" (%s UTC)", buffer);
 				}
