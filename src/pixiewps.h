@@ -55,7 +55,7 @@
 		do { \
 			printf("\n [DEBUG] %s:%4d:%s(): Trying with E-S1: ",  __FILE__, __LINE__, __func__); \
 			byte_array_print(s, WPS_SECRET_NONCE_LEN); \
-			printf("\n [DEBUG] %s:%4d:%s(): Trying with E-S1: ",  __FILE__, __LINE__, __func__); \
+			printf("\n [DEBUG] %s:%4d:%s(): Trying with E-S2: ",  __FILE__, __LINE__, __func__); \
 			byte_array_print(z, WPS_SECRET_NONCE_LEN); \
 			fflush(stdout); \
 		} while (0)
