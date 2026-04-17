@@ -7,6 +7,7 @@ MANDIR = $(PREFIX)/share/man
 SRCDIR = src
 HDRS = $(SRCDIR)/config.h $(SRCDIR)/endianness.h $(SRCDIR)/version.h
 HDRS += $(SRCDIR)/pixiewps.h $(SRCDIR)/utils.h $(SRCDIR)/wps.h
+HDRS += $(wildcard $(SRCDIR)/crypto/tc/*.h) $(wildcard $(SRCDIR)/crypto/tfm/*.h)
 
 # Internal flags so one can safely override CFLAGS, CPPFLAGS and LDFLAGS
 INTFLAGS = -std=c99 -I $(SRCDIR)/crypto/tc
@@ -41,10 +42,13 @@ $(TARGET): $(SOURCE) $(HDRS) $(TFMOBJS) $(TCOBJS)
 	$(CC) $(INTFLAGS) $(CFLAGS) $(CPPFLAGS) -o $(TARGET) $(SOURCE) $(LIBS) $(LDFLAGS) $(TFMOBJS) $(TCOBJS)
 
 $(SRCDIR)/crypto/tfm/%.o: $(SRCDIR)/crypto/tfm/%.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(SRCDIR)/crypto/tfm -c -o $@ $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(SRCDIR)/crypto/tfm -MMD -MP -c -o $@ $<
 
 $(SRCDIR)/crypto/tc/%.o: $(SRCDIR)/crypto/tc/%.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(SRCDIR)/crypto/tc -c -o $@ $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I$(SRCDIR)/crypto/tc -MMD -MP -c -o $@ $<
+
+-include $(TFMOBJS:.o=.d)
+-include $(TCOBJS:.o=.d)
 
 install: install-bin install-man
 
@@ -60,4 +64,4 @@ strip: $(TARGET)
 	strip $(TARGET)
 
 clean:
-	rm -f $(TARGET) $(TFMOBJS) $(TCOBJS)
+	rm -f $(TARGET) $(TFMOBJS) $(TCOBJS) $(TFMOBJS:.o=.d) $(TCOBJS:.o=.d)
