@@ -129,7 +129,11 @@ int main(int argc, char** argv) {
 	int ret = pixie_run(pixie_args, pinbuf, &pinlen);
 	if(ret == 1) return 0;
 	if(ret == 0) return 1;
+#if defined(_WIN32) || defined(__WIN32__)
+	_putenv_s("TZ", "UTC");
+#else
 	setenv("TZ", "UTC", 1);
+#endif
 	tzset();
 	const struct date *date;
 	for(date = reboot_dates; date->year; date++) {
